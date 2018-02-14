@@ -29,6 +29,10 @@ const ErrorHandlerService = new ErrorHandler();
 async function bootstrap() {
     const app = await NestFactory.create(ApplicationModule, server);
 
+    // Request handler (setup to interceptors?)
+    app.use(ErrorHandlerService.getRequestHandler());
+
+
     // General
     app.use(compression());
 
@@ -54,10 +58,6 @@ async function bootstrap() {
     if(process.env.ENVIRONMENT !== 'LOCAL') {
         app.use(ddos.express);
     }
-
-    // Request handler (setup to interceptors?)
-    app.use(ErrorHandlerService.getRequestHandler());
-
 
 
     // Error handling
