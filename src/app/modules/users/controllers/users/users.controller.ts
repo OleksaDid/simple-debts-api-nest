@@ -1,10 +1,9 @@
-import {Body, Controller, Get, Post, Query, Req} from '@nestjs/common';
+import {Body, Controller, Get, Post, Query} from '@nestjs/common';
 import {UsersService} from '../../services/users/users.service';
 import {SendUserDto, UpdateUserDataDto} from '../../user.dto';
-import {ImagesHelper} from '../../../../common/classes/images-helper';
 import {ReqUser} from '../../../../common/decorators/request-user.decorator';
-import {Request} from 'express';
 import {NotEmptyPipe} from '../../../../pipes/not-empty.pipe';
+import {UploadedImagePath} from '../../../../common/decorators/uploaded-image-path.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -39,15 +38,10 @@ export class UsersController {
     @Post()
     updateUserData(
         @Body('name', new NotEmptyPipe()) userName: string,
-        @ReqUser() user: SendUserDto,
-        @Req() req: Request
+        @UploadedImagePath() filePath: string,
+        @ReqUser() user: SendUserDto
     ) {
-        const fileName = (req['file'] && req['file'].filename) ? req['file'].filename : null;
-
-        const userInfo = new UpdateUserDataDto(
-            userName,
-            fileName ? ImagesHelper.getImagesPath(req) + fileName : null
-        );
+        const userInfo = new UpdateUserDataDto(userName, filePath);
 
         return this.usersService.updateUserData(user.id, userInfo);
     }
