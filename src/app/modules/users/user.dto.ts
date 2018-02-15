@@ -1,6 +1,13 @@
+import {IsMongoId, IsOptional, IsString, IsUrl} from 'class-validator';
+
 export class SendUserDto {
+    @IsMongoId()
     id: string;
+
+    @IsString()
     name: string;
+
+    @IsUrl({ require_tld: false})
     picture: string;
 
     constructor(id: string, name: string, picture: string) {
@@ -11,7 +18,11 @@ export class SendUserDto {
 }
 
 export class UpdateUserDataDto {
+    @IsString()
     name: string;
+
+    @IsOptional()
+    @IsUrl({ require_tld: false})
     picture?: string;
 
     constructor(name: string, picture?: string) {

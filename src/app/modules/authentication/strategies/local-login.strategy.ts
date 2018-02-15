@@ -31,7 +31,8 @@ export class LocalLoginStrategy extends LocalStrategy {
 
         // find a user whose email is the same as the forms email
         // we are checking to see if the user trying to login already exists
-        return this.User.findOne({ 'email' :  email })
+        return this.User
+            .findOne({ 'email' :  email })
             .then((user: UserInterface) => {
 
                 // if no user is found, return the message

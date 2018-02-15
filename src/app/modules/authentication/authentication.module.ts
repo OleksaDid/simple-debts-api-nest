@@ -1,5 +1,5 @@
 import * as passport from 'passport';
-import {Module, NestModule, RequestMethod} from '@nestjs/common';
+import {forwardRef, Module, NestModule, RequestMethod} from '@nestjs/common';
 import {AuthenticationService} from './services/authentication/authentication.service';
 import {LoginController} from './controllers/login/login.controller';
 import {SignUpController} from './controllers/sign-up/sign-up.controller';
@@ -13,7 +13,7 @@ import {JwtStrategy} from './strategies/jwt.strategy';
 import {RefreshTokenStrategy} from './strategies/refresh-token.strategy';
 
 @Module({
-  modules: [UsersModule],
+  modules: [forwardRef(() => UsersModule)],
   components: [
     AuthenticationService,
     LocalSignUpStrategy,

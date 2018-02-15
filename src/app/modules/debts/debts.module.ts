@@ -6,6 +6,9 @@ import {debtsProviders} from "./debts.providers";
     modules: [DatabaseModule],
     components: [
         ...debtsProviders
+    ],
+    exports: [
+        ...debtsProviders
     ]
 })
 export class DebtsModule {}

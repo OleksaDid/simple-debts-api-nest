@@ -16,10 +16,9 @@ import * as helmet from 'helmet';
 import * as Ddos from 'ddos';
 import { NestFactory } from '@nestjs/core';
 import { ApplicationModule } from './app/app.module';
-import {INestApplication} from '@nestjs/common/interfaces/nest-application.interface';
 import {ErrorHandler} from "./app/services/error-handler/error-handler.service";
 import {HttpWithExceptionFilter} from "./app/filters/http-exception.filter";
-import {UncaughtExceptionFilter} from "./app/filters/uncaught-exception.filter";
+import {ModelValidationPipe} from './app/pipes/model-validation.pipe';
 
 const server = express();
 
@@ -58,6 +57,10 @@ async function bootstrap() {
     if(process.env.ENVIRONMENT !== 'LOCAL') {
         app.use(ddos.express);
     }
+
+
+    // Global pipes
+    app.useGlobalPipes(new ModelValidationPipe());
 
 
     // Error handling
