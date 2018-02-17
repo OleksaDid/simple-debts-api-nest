@@ -1,11 +1,11 @@
 import {Component, HttpStatus, Inject} from '@nestjs/common';
 import {Id} from '../../../../common/types/types';
-import {SendUserDto, UpdateUserDataDto} from '../../user.dto';
+import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
 import {DebtInterface} from '../../../debts/debt.interface';
 import {DebtsProvider} from '../../../debts/debts.providers';
 import {Model} from 'mongoose';
 import {UsersProvider} from '../../users.providers';
-import {UserInterface} from '../../user.interface';
+import {UserInterface} from '../../models/user.interface';
 import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {IMAGES_FOLDER_FILE_PATTERN} from '../../../../common/constants/constants';
 import * as fs from 'fs';

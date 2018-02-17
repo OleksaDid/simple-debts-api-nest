@@ -1,9 +1,9 @@
 import {Body, Controller, Get, Post, Query} from '@nestjs/common';
 import {UsersService} from '../../services/users/users.service';
-import {SendUserDto, UpdateUserDataDto} from '../../user.dto';
+import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
 import {ReqUser} from '../../../../common/decorators/request-user.decorator';
-import {NotEmptyPipe} from '../../../../pipes/not-empty.pipe';
 import {UploadedImagePath} from '../../../../common/decorators/uploaded-image-path.decorator';
+import {UserNameDto} from '../../models/user-name.dto';
 
 @Controller('users')
 export class UsersController {
@@ -20,10 +20,10 @@ export class UsersController {
      */
     @Get()
     getUsersArrayByName(
-        @Query('name', new NotEmptyPipe()) userName: string,
+        @Query() userNameDto: UserNameDto,
         @ReqUser() user: SendUserDto
     ) {
-        return this.usersService.getUsersByName(userName, user.id);
+        return this.usersService.getUsersByName(userNameDto.name, user.id);
     }
 
 
@@ -37,11 +37,11 @@ export class UsersController {
      */
     @Post()
     updateUserData(
-        @Body('name', new NotEmptyPipe()) userName: string,
+        @Body() userNameDto: UserNameDto,
         @UploadedImagePath() filePath: string,
         @ReqUser() user: SendUserDto
     ) {
-        const userInfo = new UpdateUserDataDto(userName, filePath);
+        const userInfo = new UpdateUserDataDto(userNameDto.name, filePath);
 
         return this.usersService.updateUserData(user.id, userInfo);
     }

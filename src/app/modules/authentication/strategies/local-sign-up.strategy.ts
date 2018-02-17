@@ -3,7 +3,7 @@ import * as LocalStrategy from 'passport-local';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import {Component, HttpStatus, Inject} from '@nestjs/common';
 import {UsersProvider} from "../../users/users.providers";
-import {UserInterface} from "../../users/user.interface";
+import {UserInterface} from "../../users/models/user.interface";
 import {Model} from "mongoose";
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";

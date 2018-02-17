@@ -1,8 +1,8 @@
 import {Component, Inject} from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 
-import { UserInterface } from '../../../users/user.interface';
-import { SendUserDto } from '../../../users/user.dto';
+import { UserInterface } from '../../../users/models/user.interface';
+import { SendUserDto } from '../../../users/models/user.dto';
 import {UsersProvider} from "../../../users/users.providers";
 import {Model} from "mongoose";
 import {AccessJwtPayload, RefreshJwtPayload} from "../../models/jwt-payload";

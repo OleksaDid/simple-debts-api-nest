@@ -11,6 +11,7 @@ import {LocalLoginStrategy} from './strategies/local-login.strategy';
 import {FacebookLoginStrategy} from './strategies/facebook-login.strategy';
 import {JwtStrategy} from './strategies/jwt.strategy';
 import {RefreshTokenStrategy} from './strategies/refresh-token.strategy';
+import checkJWTAccess from './middlewares/check-jwt/check-jwt.middleware';
 
 @Module({
   modules: [forwardRef(() => UsersModule)],
@@ -33,7 +34,7 @@ import {RefreshTokenStrategy} from './strategies/refresh-token.strategy';
 export class AuthenticationModule implements NestModule {
     public configure(consumer: MiddlewaresConsumer) {
         consumer
-            .apply(passport.authenticate(AuthStrategy.JWT_STRATEGY, {session: false}))
+            .apply(checkJWTAccess)
             .forRoutes({ path: '/login/status', method: RequestMethod.GET });
 
         consumer

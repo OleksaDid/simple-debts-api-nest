@@ -1,6 +1,6 @@
 import { Connection } from 'mongoose';
 import {DatabaseProvider} from "../database/database.providers";
-import UserSchema from "./user.schema";
+import UserSchema from "./models/user.schema";
 
 export enum UsersProvider {
     UsersModelToken = 'UsersModelToken'

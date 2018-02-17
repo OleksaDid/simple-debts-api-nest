@@ -1,7 +1,7 @@
 import * as passport from 'passport';
 import {Controller, Get, HttpStatus, Next, Response, Request, Post, Body} from '@nestjs/common';
 import {AuthenticationService} from "../../services/authentication/authentication.service";
-import {SendUserDto} from "../../../users/user.dto";
+import {SendUserDto} from "../../../users/models/user.dto";
 import {HttpWithRequestException} from "../../../../services/error-handler/http-with-request.exception";
 import {LoginLocalDto} from "../../models/local-authentication";
 import {AuthUser} from '../../models/auth-user';

@@ -2,7 +2,7 @@ import * as bcrypt from 'bcrypt-nodejs';
 import * as fs from 'fs';
 import * as Identicon from 'identicon.js';
 import {Schema} from 'mongoose';
-import {IMAGES_FOLDER_DIR} from "../../common/constants/constants";
+import {IMAGES_FOLDER_DIR} from "../../../common/constants/constants";
 
 
 const UserSchema = new Schema({

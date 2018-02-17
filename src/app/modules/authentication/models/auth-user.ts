@@ -1,4 +1,4 @@
-import {SendUserDto} from "../../users/user.dto";
+import {SendUserDto} from "../../users/models/user.dto";
 
 export interface AuthUser {
     user: SendUserDto;
