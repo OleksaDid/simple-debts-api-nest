@@ -7,7 +7,8 @@ import {MiddlewaresConsumer} from '@nestjs/common/interfaces/middlewares';
 import {AuthenticationModule} from '../authentication/authentication.module';
 import {UploadImageMiddleware} from '../../middlewares/upload-image/upload-image.middleware';
 import {DebtsModule} from '../debts/debts.module';
-import checkJWTAccess from '../authentication/middlewares/check-jwt/check-jwt.middleware';
+import {AuthMiddleware} from '../authentication/middlewares/auth-middleware/auth.middleware';
+import {AuthStrategy} from '../authentication/strategies/strategies-list.enum';
 
 @Module({
     modules: [
@@ -27,7 +28,8 @@ import checkJWTAccess from '../authentication/middlewares/check-jwt/check-jwt.mi
 export class UsersModule implements NestModule {
     public configure(consumer: MiddlewaresConsumer) {
         consumer
-            .apply(checkJWTAccess)
+            .apply(AuthMiddleware)
+            .with(AuthStrategy.LOCAL_LOGIN_STRATEGY)
             .forRoutes({ path: '/users', method: RequestMethod.ALL });
 
         consumer

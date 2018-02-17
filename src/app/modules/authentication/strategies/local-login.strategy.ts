@@ -37,12 +37,12 @@ export class LocalLoginStrategy extends LocalStrategy {
 
                 // if no user is found, return the message
                 if (!user) {
-                    throw new HttpWithRequestException('No user is found', HttpStatus.NOT_FOUND, req);
+                    throw new HttpWithRequestException('No user is found', HttpStatus.BAD_REQUEST, req);
                 }
 
                 // if the user is found but the password is wrong
                 if (!user.validPassword(password)) {
-                    throw new HttpWithRequestException('Wrong password', HttpStatus.NON_AUTHORITATIVE_INFORMATION, req);
+                    throw new HttpWithRequestException('Wrong password', HttpStatus.BAD_REQUEST, req);
                 }
 
                 // all is well, return successful user

@@ -19,6 +19,7 @@ import { ApplicationModule } from './app/app.module';
 import {ErrorHandler} from "./app/services/error-handler/error-handler.service";
 import {HttpWithExceptionFilter} from "./app/filters/http-exception.filter";
 import {ModelValidationPipe} from './app/pipes/model-validation.pipe';
+import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
 
 const server = express();
 
@@ -67,6 +68,21 @@ async function bootstrap() {
     app.use(ErrorHandlerService.getErrorHandler());
 
     app.useGlobalFilters(new HttpWithExceptionFilter());
+
+    // Swagger
+    const options = new DocumentBuilder()
+        .setTitle('Simple Debts')
+        .setDescription('Simple Debts API powered by Nest')
+        .setVersion('1.0')
+        .addBearerAuth('Authorization', 'header')
+        .setSchemes('http')
+        .setSchemes('https')
+        .addTag('login')
+        .addTag('sign_up')
+        .addTag('users')
+        .build();
+    const document = SwaggerModule.createDocument(app, options);
+    SwaggerModule.setup('/api', app, document);
 
 
     const port = +process.env.PORT || 10010;

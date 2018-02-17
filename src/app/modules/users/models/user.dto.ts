@@ -1,12 +1,25 @@
-import {IsMongoId, IsOptional, IsString, IsUrl} from 'class-validator';
+import {IsMongoId, IsNotEmpty, IsOptional, IsString, IsUrl, Length} from 'class-validator';
+import {ApiModelProperty} from '@nestjs/swagger';
 
 export class SendUserDto {
+    @ApiModelProperty({
+        description: 'user\'s db id',
+        type: 'string',
+    })
     @IsMongoId()
     id: string;
 
+    @ApiModelProperty({
+        description: 'username',
+        type: 'string'
+    })
     @IsString()
     name: string;
 
+    @ApiModelProperty({
+        description: 'url to user\'s avatar',
+        type: 'string'
+    })
     @IsUrl({ require_tld: false})
     picture: string;
 
@@ -18,9 +31,23 @@ export class SendUserDto {
 }
 
 export class UpdateUserDataDto {
+
+    @ApiModelProperty({
+        description: 'username',
+        type: 'string',
+        required: true
+    })
     @IsString()
+    @IsNotEmpty()
+    @Length(1, 25)
     name: string;
 
+
+    @ApiModelProperty({
+        description: 'url to user\'s avatar',
+        type: 'string',
+        required: false
+    })
     @IsOptional()
     @IsUrl({ require_tld: false})
     picture?: string;

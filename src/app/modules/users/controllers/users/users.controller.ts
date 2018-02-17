@@ -4,7 +4,11 @@ import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
 import {ReqUser} from '../../../../common/decorators/request-user.decorator';
 import {UploadedImagePath} from '../../../../common/decorators/uploaded-image-path.decorator';
 import {UserNameDto} from '../../models/user-name.dto';
+import {ApiBearerAuth, ApiResponse, ApiUseTags} from '@nestjs/swagger';
 
+
+@ApiBearerAuth()
+@ApiUseTags('users')
 @Controller('users')
 export class UsersController {
 
@@ -18,6 +22,15 @@ export class UsersController {
      * /users
      * @query name String String to search users by name
      */
+    @ApiResponse({
+        status: 200,
+        type: SendUserDto,
+        isArray: true
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Bad Request'
+    })
     @Get()
     getUsersArrayByName(
         @Query() userNameDto: UserNameDto,
@@ -35,9 +48,17 @@ export class UsersController {
      * @param name String Name of user
      * @param image File User's avatar
      */
+    @ApiResponse({
+        status: 200,
+        type: SendUserDto
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Bad Request'
+    })
     @Post()
     updateUserData(
-        @Body() userNameDto: UserNameDto,
+        @Body() userNameDto: UpdateUserDataDto,
         @UploadedImagePath() filePath: string,
         @ReqUser() user: SendUserDto
     ) {
