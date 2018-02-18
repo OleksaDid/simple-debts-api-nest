@@ -5,6 +5,7 @@ import {ReqUser} from '../../../../common/decorators/request-user.decorator';
 import {SendUserDto} from '../../../users/models/user.dto';
 import {DebtResponseDto} from '../../models/debt-response.dto';
 import {IdParamDto} from '../../../../common/classes/id-param.dto';
+import {DebtsListDto} from '../../models/debt.dto';
 
 @ApiBearerAuth()
 @ApiUseTags('debts')
@@ -23,8 +24,7 @@ export class DebtsController {
      */
     @ApiResponse({
         status: 200,
-        type: DebtResponseDto,
-        isArray: true
+        type: DebtsListDto
     })
     @ApiResponse({
         status: 400,

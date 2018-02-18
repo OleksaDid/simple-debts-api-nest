@@ -36,45 +36,37 @@ export class DebtsSingleService {
             throw new HttpWithRequestException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
         }
 
-        return this.Debts
+        const debts = await this.Debts
             .find({'users': {'$all': [creatorId]}, 'type': DebtsAccountType.SINGLE_USER})
-            .populate({ path: 'users', select: 'name virtual'})
-            .lean()
-            .then((debts: DebtInterface[]) => {
-                if(
-                    debts &&
-                    debts.length > 0 &&
-                    debts.some(debt => !!debt.users.find(user => user['name'] === userName && user['virtual']))
-                ) {
-                    throw new HttpWithRequestException('You already have virtual user with such name', HttpStatus.BAD_REQUEST);
-                }
+            .populate({ path: 'users', select: 'name virtual'});
 
-                return this.User.create(virtUser);
-            })
-            .then((user: UserInterface) => {
+        if(
+            debts &&
+            debts.length > 0 &&
+            debts.some(debt => !!debt.users.find(user => user['name'] === userName && user['virtual']))
+        ) {
+            throw new HttpWithRequestException('You already have virtual user with such name', HttpStatus.BAD_REQUEST);
+        }
 
-                const newUser: any = new this.User();
+        const user = await this.User.create(virtUser);
+        const userPicture = await new this.User().generateIdenticon(user.id);
 
-                return newUser
-                    .generateIdenticon(user.id)
-                    .then(image => {
-                        user.picture = imagesPath + image;
-                        return user.save();
-                    })
-                    .then(() => this.Debts.create(new DebtDto(creatorId, user._id, DebtsAccountType.SINGLE_USER, countryCode)));
-            });
+        user.picture = imagesPath + userPicture;
+        await user.save();
+
+        return this.Debts.create(new DebtDto(creatorId, user._id, DebtsAccountType.SINGLE_USER, countryCode))
     }
 
     async deleteSingleDebt(debt: DebtInterface, userId: Id): Promise<void> {
         const virtualUserId = debt.users.find(user => user['_id'].toString() != userId);
 
-        return debt
-            .remove()
-            .then(() => this.usersService.deleteUser(virtualUserId));
+        await debt.remove();
+
+        await this.usersService.deleteUser(virtualUserId);
     }
 
     async acceptUserDeletedStatus(userId: Id, debtsId: Id): Promise<DebtInterface> {
-        return this.Debts
+        const debt = await this.Debts
             .findOne({
                 _id: debtsId,
                 type: DebtsAccountType.SINGLE_USER,
@@ -84,113 +76,112 @@ export class DebtsSingleService {
             .populate({
                 path: 'moneyOperations',
                 select: 'status'
-            })
-            .then((debt: DebtInterface) => {
-                if(!debt) {
-                    throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
-                }
-
-                if(!debt.moneyOperations ||
-                    !debt.moneyOperations.length ||
-                    debt.moneyOperations.every(operation => operation.status === OperationStatus.UNCHANGED)
-                ) {
-                    debt.status = DebtsStatus.UNCHANGED;
-                    debt.statusAcceptor = null;
-                } else {
-                    debt.status = DebtsStatus.CHANGE_AWAITING;
-                    debt.statusAcceptor = userId;
-                }
-
-                return debt.save();
             });
+
+        if(!debt) {
+            throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
+        }
+
+        if(!debt.moneyOperations ||
+            !debt.moneyOperations.length ||
+            debt.moneyOperations.every(operation => operation.status === OperationStatus.UNCHANGED)
+        ) {
+            debt.status = DebtsStatus.UNCHANGED;
+            debt.statusAcceptor = null;
+        } else {
+            debt.status = DebtsStatus.CHANGE_AWAITING;
+            debt.statusAcceptor = userId;
+        }
+
+        return debt.save();
     };
 
     async connectUserToSingleDebt(userId: Id, connectUserId: Id, debtsId: Id): Promise<DebtInterface> {
-        return this.Debts
+        const debtsWithConnectingUser = await this.Debts
             .find({users: {$all: [userId, connectUserId]}})
-            .lean()
-            .then((debts: DebtInterface[]) => {
-                if(debts && debts['length'] > 0) {
-                    throw new HttpWithRequestException('You already have Debt with this user', HttpStatus.BAD_REQUEST);
-                }
+            .lean();
 
-                return this.Debts
-                    .findOne({_id: debtsId, type: DebtsAccountType.SINGLE_USER, users: {$in: [userId]}});
-            })
-            .then((debt: DebtInterface) => {
-                if(!debt) {
-                    throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
-                }
+        if(debtsWithConnectingUser && debtsWithConnectingUser['length'] > 0) {
+            throw new HttpWithRequestException('You already have Debt with this user', HttpStatus.BAD_REQUEST);
+        }
 
-                if(debt.status === DebtsStatus.CONNECT_USER) {
-                    throw new HttpWithRequestException('Some user is already waiting for connection to this Debt', HttpStatus.BAD_REQUEST);
-                }
 
-                if(debt.status === DebtsStatus.USER_DELETED) {
-                    throw new HttpWithRequestException('You can\'t connect user to this Debt until you resolve user deletion', HttpStatus.BAD_REQUEST);
-                }
+        const debt = await this.Debts
+            .findOne({_id: debtsId, type: DebtsAccountType.SINGLE_USER, users: {$in: [userId]}});
 
-                debt.status = DebtsStatus.CONNECT_USER;
-                debt.statusAcceptor = connectUserId;
+        if(!debt) {
+            throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
+        }
 
-                return debt.save();
-            });
+        if(debt.status === DebtsStatus.CONNECT_USER) {
+            throw new HttpWithRequestException('Some user is already waiting for connection to this Debt', HttpStatus.BAD_REQUEST);
+        }
+
+        if(debt.status === DebtsStatus.USER_DELETED) {
+            throw new HttpWithRequestException('You can\'t connect user to this Debt until you resolve user deletion', HttpStatus.BAD_REQUEST);
+        }
+
+        debt.status = DebtsStatus.CONNECT_USER;
+        debt.statusAcceptor = connectUserId;
+
+        return debt.save();
     };
 
     async acceptUserConnectionToSingleDebt(userId: Id, debtsId: Id): Promise<void> {
-        return this.Debts
+        const debt = await this.Debts
             .findOne({
                 _id: debtsId,
                 type: DebtsAccountType.SINGLE_USER,
                 status: DebtsStatus.CONNECT_USER,
                 statusAcceptor: userId
             })
-            .populate('users', 'virtual')
-            .then((debt: DebtInterface) => {
-                const virtualUserId = debt.users.find(user => user['virtual']);
+            .populate('users', 'virtual');
 
-                debt.status = DebtsStatus.UNCHANGED;
-                debt.type = DebtsAccountType.MULTIPLE_USERS;
-                debt.statusAcceptor = null;
+        const virtualUserId = debt.users.find(user => user['virtual']);
 
-                if(debt.moneyReceiver === virtualUserId) {
-                    debt.moneyReceiver = userId;
-                }
+        debt.status = DebtsStatus.UNCHANGED;
+        debt.type = DebtsAccountType.MULTIPLE_USERS;
+        debt.statusAcceptor = null;
 
-                debt.users.push(userId);
+        if(debt.moneyReceiver === virtualUserId) {
+            debt.moneyReceiver = userId;
+        }
 
-                const promises = [];
+        debt.users.push(userId);
 
-                debt.moneyOperations.forEach(operation => {
-                    promises.push(
-                        this.Operation.findById(operation)
-                            .then((op: OperationInterface) => {
-                                if(op.moneyReceiver === virtualUserId) {
-                                    op.moneyReceiver = userId;
-                                }
+        const promises = [];
 
-                                return op.save();
-                            })
-                    );
-                });
+        debt.moneyOperations.forEach(operation => {
+            promises.push(
+                this.Operation
+                    .findById(operation)
+                    .then((op: OperationInterface) => {
+                        if(op.moneyReceiver === virtualUserId) {
+                            op.moneyReceiver = userId;
+                        }
 
-                promises.push(
-                    this.usersService.deleteUser(virtualUserId)
-                );
-
-                promises.push(
-                    this.Debts.findByIdAndUpdate(debtsId, {
-                        $pull: {users: virtualUserId}
+                        return op.save();
                     })
-                );
+            );
+        });
 
-                return debt.save().then(() => Promise.all(promises));
-            })
-            .then(() => {});
+        promises.push(
+            this.usersService.deleteUser(virtualUserId)
+        );
+
+        promises.push(
+            this.Debts
+                .findByIdAndUpdate(debtsId, {
+                    $pull: {users: virtualUserId}
+                })
+        );
+
+        await debt.save();
+        await Promise.all(promises);
     };
 
     async declineUserConnectionToSingleDebt(userId: Id, debtsId: Id): Promise<void> {
-        return this.Debts
+        const debt = await this.Debts
             .findOneAndUpdate(
                 {
                     _id: debtsId,
@@ -201,11 +192,10 @@ export class DebtsSingleService {
                         {statusAcceptor: userId}
                     ]
                 },
-                {status: DebtsStatus.UNCHANGED, statusAcceptor: null})
-            .then((debt: DebtInterface) => {
-                if(!debt) {
-                    throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
-                }
-            });
+                {status: DebtsStatus.UNCHANGED, statusAcceptor: null});
+
+        if(!debt) {
+            throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
+        }
     }
 }

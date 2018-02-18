@@ -32,7 +32,7 @@ export class DebtsService {
 
 
   async getAllUserDebts(userId: Id): Promise<DebtsListDto> {
-      return this.Debts
+      const debts = await this.Debts
           .find({
               $or: [
                   {users: {'$all': [userId]}},
@@ -40,51 +40,45 @@ export class DebtsService {
               ]
           })
           .populate({ path: 'users', select: 'name picture virtual'})
-          .sort({status: 1, updatedAt: -1})
-          .lean()
-          .then((debts: DebtInterface[]) => {
-              if(debts) {
-                  const debtsArray = debts.map(debt => this.formatDebt(debt, userId, false));
+          .sort({status: 1, updatedAt: -1});
 
-                  return new DebtsListDto(debtsArray, userId);
-              }
-          });
-  };
+      return new DebtsListDto(
+          debts.map(debt => this.formatDebt(debt, userId, false)),
+          userId
+      );
+  }
 
   async getDebtsById(userId: Id, debtsId: Id) {
-      return this.Debts
+      const debt = await this.Debts
           .findById(debtsId)
           .populate({
               path: 'moneyOperations',
               select: 'date moneyAmount moneyReceiver description status statusAcceptor',
               options: { sort: { 'date': -1 } }
           })
-          .populate({ path: 'users', select: 'name picture virtual'})
-          .lean()
-          .then((debt: DebtInterface) => {
-              if(!debt) {
-                  throw new HttpWithRequestException('Debts with id ' + debtsId + ' is not found', HttpStatus.BAD_REQUEST);
-              }
+          .populate({ path: 'users', select: 'name picture virtual'});
 
-              return this.formatDebt(debt, userId, true);
-          });
+      if(!debt) {
+          throw new HttpWithRequestException('Debts with id ' + debtsId + ' is not found', HttpStatus.BAD_REQUEST);
+      }
+
+      return this.formatDebt(debt, userId, true);
   };
 
   async deleteDebt(userId: Id, debtsId: Id): Promise<void> {
-      return this.Debts
+      const debt = await this.Debts
           .findOne({_id: debtsId, users: {$in: [userId]}})
-          .populate({ path: 'users', select: 'name picture'})
-          .then((debt: DebtInterface) => {
-              if(!debt) {
-                  throw new HttpWithRequestException('Debts not found', HttpStatus.BAD_REQUEST);
-              }
+          .populate({ path: 'users', select: 'name picture'});
 
-              if(debt.type === DebtsAccountType.SINGLE_USER) {
-                  return this.singleDebtsService.deleteSingleDebt(debt, userId);
-              } else if(debt.type === DebtsAccountType.MULTIPLE_USERS) {
-                  return this.multipleDebtsService.deleteMultipleDebts(debt, userId);
-              }
-          });
+      if(!debt) {
+          throw new HttpWithRequestException('Debts not found', HttpStatus.BAD_REQUEST);
+      }
+
+      if(debt.type === DebtsAccountType.SINGLE_USER) {
+          return this.singleDebtsService.deleteSingleDebt(debt, userId);
+      } else if(debt.type === DebtsAccountType.MULTIPLE_USERS) {
+          return this.multipleDebtsService.deleteMultipleDebts(debt, userId);
+      }
   };
 
 

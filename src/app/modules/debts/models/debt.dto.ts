@@ -8,6 +8,7 @@ import {
 import {DebtsAccountType} from './debts-account-type.enum';
 import {DebtsStatus} from './debts-status.enum';
 import {DebtResponseDto} from './debt-response.dto';
+import {ApiModelProperty} from '@nestjs/swagger';
 
 export class DebtDto {
     @IsNotEmpty()
@@ -60,10 +61,44 @@ export class DebtDto {
 }
 
 
+
+class DebtsListSummary  {
+    @ApiModelProperty({
+        description: 'amount of money you should give back',
+        type: 'number'
+    })
+    @IsNumber()
+    @IsPositive()
+    toGive: number;
+
+    @ApiModelProperty({
+        description: 'amount of money you should collect',
+        type: 'number'
+    })
+    @IsNumber()
+    @IsPositive()
+    toTake: number;
+
+    constructor(toGive: number, toTake: number) {
+        this.toGive = toGive;
+        this.toTake = toTake;
+    }
+}
+
 export class DebtsListDto {
+    @ApiModelProperty({
+        description: 'list of all debts',
+        type: DebtResponseDto,
+        isArray: true
+    })
     @IsArray()
     debts: DebtResponseDto[];
 
+
+    @ApiModelProperty({
+        description: 'summary object',
+        type: DebtsListSummary
+    })
     summary: DebtsListSummary;
 
     constructor(debts: DebtResponseDto[], userId: Id) {
@@ -86,22 +121,5 @@ export class DebtsListDto {
                 return new DebtsListSummary(summary.toGive + debt.summary, summary.toTake);
             }
         }, this.summary);
-    }
-}
-
-
-
-class DebtsListSummary  {
-    @IsNumber()
-    @IsPositive()
-    toGive: number;
-
-    @IsNumber()
-    @IsPositive()
-    toTake: number;
-
-    constructor(toGive: number, toTake: number) {
-        this.toGive = toGive;
-        this.toTake = toTake;
     }
 }

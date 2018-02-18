@@ -21,54 +21,47 @@ export class UsersService {
 
 
     public async getUsersByName(name: string, userId: Id): Promise<SendUserDto[]> {
-        let usedUserIds: Id[];
-
-        return this.Debts
+        const debts = await this.Debts
             .find({'users': {'$all': [userId]}})
             .populate({ path: 'users', select: 'name picture'})
-            .exec()
-            .then((debts: DebtInterface[]) => {
-                usedUserIds = debts
-                    .map(debt => debt.users.find(user => user['id'].toString() != userId)['id']);
+            .exec();
 
-                return this.User
-                    .find({
-                        name: new RegExp(name, 'i'),
-                        virtual: false
-                    })
-                    .limit(15)
-                    .exec();
+        const usedUserIds = debts
+            .map(debt => debt.users.find(user => user['id'].toString() != userId)['id']);
+
+        const users = await this.User
+            .find({
+                name: new RegExp(name, 'i'),
+                virtual: false
             })
-            .then((users: UserInterface[]) => {
-                return users
-                    .filter(user => user.id != userId && !usedUserIds.find(id => user.id == id))
-                    .map(user => new SendUserDto(user.id, user.name, user.picture));
-            });
+            .limit(15)
+            .exec();
+
+        return users
+            .filter(user => user.id != userId && !usedUserIds.find(id => user.id == id))
+            .map(user => new SendUserDto(user.id, user.name, user.picture));
     }
 
     public async updateUserData(userId: Id, userInfo: UpdateUserDataDto): Promise<SendUserDto> {
-        return this.User
-            .findByIdAndUpdate(userId, userInfo)
-            .then((updatedUser: UserInterface) => {
-                if(!updatedUser) {
-                    throw new HttpWithRequestException('User not found', HttpStatus.BAD_REQUEST);
-                }
+        const updatedUser = await this.User
+            .findByIdAndUpdate(userId, userInfo);
 
-                return new SendUserDto(updatedUser.id, userInfo.name, userInfo.picture || updatedUser.picture);
-            });
+        if(!updatedUser) {
+            throw new HttpWithRequestException('User not found', HttpStatus.BAD_REQUEST);
+        }
+
+        return new SendUserDto(updatedUser.id, userInfo.name, userInfo.picture || updatedUser.picture);
     };
 
     public async deleteUser(userId: Id): Promise<void> {
-        return this.User
-            .findByIdAndRemove(userId)
-            .then((user: UserInterface) => {
-                if(!user) {
-                    throw new HttpWithRequestException('Virtual user is not found', HttpStatus.BAD_REQUEST);
-                }
+        const user = await this.User.findByIdAndRemove(userId);
 
-                const imageName = user.picture.match(IMAGES_FOLDER_FILE_PATTERN);
+        if(!user) {
+            throw new HttpWithRequestException('Virtual user is not found', HttpStatus.BAD_REQUEST);
+        }
 
-                fs.unlinkSync('public' + imageName);
-            });
+        const imageName = user.picture.match(IMAGES_FOLDER_FILE_PATTERN);
+
+        fs.unlinkSync('public' + imageName);
     }
 }
