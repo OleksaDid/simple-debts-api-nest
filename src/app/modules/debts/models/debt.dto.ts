@@ -1,16 +1,50 @@
-import {Id} from "../../common/types/types";
-import {DebtsAccountType, DebtsStatus} from "./debt.interface";
-import {OperationInterface} from "../operations/operation.interface";
-import {ValidationObject} from "../../common/classes/validation-object";
+import {Id} from "../../../common/types/types";
+import {OperationInterface} from "../../operations/operation.interface";
+import {
+    ArrayMaxSize, ArrayMinSize, ArrayUnique, IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsPositive,
+    IsString,
+    Length
+} from 'class-validator';
+import {DebtsAccountType} from './debts-account-type.enum';
+import {DebtsStatus} from './debts-status.enum';
+import {DebtResponseDto} from './debt-response.dto';
 
 export class DebtDto {
+    @IsNotEmpty()
+    @IsArray()
+    @ArrayUnique()
+    @ArrayMaxSize(2)
+    @ArrayMinSize(2)
     users: Id[];
+
+    @IsNotEmpty()
+    @IsEnum(DebtsAccountType)
     type: DebtsAccountType;
+
+    @IsNotEmpty()
+    @IsString()
+    @Length(2, 2)
     countryCode: string;
+
+    @IsNotEmpty()
+    @IsEnum(DebtsStatus)
     status: DebtsStatus;
+
+    @IsOptional()
+    @IsMongoId()
     statusAcceptor: Id;
+
+    @IsNumber()
+    @IsPositive()
     summary: number;
+
+    @IsOptional()
+    @IsMongoId()
     moneyReceiver: Id;
+
+
+    @IsArray()
+    @ArrayUnique()
     moneyOperations: OperationInterface[];
 
     constructor(creatorId: Id, secondUserId: Id, type: DebtsAccountType, countryCode: string) {
@@ -27,17 +61,19 @@ export class DebtDto {
 
 
 export class DebtsListDto {
-    debts: DebtDto[];
+    @IsArray()
+    debts: DebtResponseDto[];
+
     summary: DebtsListSummary;
 
-    constructor(debts: DebtDto[], userId: Id) {
+    constructor(debts: DebtResponseDto[], userId: Id) {
         this.debts = debts;
         this.summary = new DebtsListSummary(0, 0);
         this.calculateSummary(userId);
     }
     
     private calculateSummary(userId: Id) {
-        this.summary = this.debts.reduce((summary: DebtsListSummary, debt: DebtDto) => {
+        this.summary = this.debts.reduce((summary: DebtsListSummary, debt: DebtResponseDto) => {
             if(debt.moneyReceiver === null) {
                 return summary;
             }
@@ -56,20 +92,16 @@ export class DebtsListDto {
 
 
 class DebtsListSummary  {
+    @IsNumber()
+    @IsPositive()
     toGive: number;
+
+    @IsNumber()
+    @IsPositive()
     toTake: number;
 
     constructor(toGive: number, toTake: number) {
         this.toGive = toGive;
         this.toTake = toTake;
-    }
-}
-
-export class DebtsIdValidationObject extends ValidationObject {
-    debtsId: Id;
-
-    constructor(errors: any, userId: Id, debtsId: Id) {
-        super(errors, userId);
-        this.debtsId = debtsId;
     }
 }

@@ -1,14 +1,14 @@
 import {Component, HttpStatus, Inject} from '@nestjs/common';
 import {Id} from '../../../../common/types/types';
 import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
-import {DebtInterface} from '../../../debts/debt.interface';
-import {DebtsProvider} from '../../../debts/debts.providers';
+import {DebtInterface} from '../../../debts/models/debt.interface';
 import {Model} from 'mongoose';
-import {UsersProvider} from '../../users.providers';
 import {UserInterface} from '../../models/user.interface';
 import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {IMAGES_FOLDER_FILE_PATTERN} from '../../../../common/constants/constants';
 import * as fs from 'fs';
+import {UsersProvider} from '../../users-providers.enum';
+import {DebtsProvider} from '../../../debts/debts-providers.enum';
 
 @Component()
 export class UsersService {

@@ -17,11 +17,7 @@ export class UsersController {
     ) {}
 
 
-    /*
-     * GET
-     * /users
-     * @query name String String to search users by name
-     */
+
     @ApiResponse({
         status: 200,
         type: SendUserDto,
@@ -41,13 +37,7 @@ export class UsersController {
 
 
 
-    /*
-     * POST
-     * /users
-     * @header Content-Type multipart/form-data
-     * @param name String Name of user
-     * @param image File User's avatar
-     */
+
     @ApiResponse({
         status: 200,
         type: SendUserDto

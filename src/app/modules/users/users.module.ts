@@ -8,7 +8,7 @@ import {AuthenticationModule} from '../authentication/authentication.module';
 import {UploadImageMiddleware} from '../../middlewares/upload-image/upload-image.middleware';
 import {DebtsModule} from '../debts/debts.module';
 import {AuthMiddleware} from '../authentication/middlewares/auth-middleware/auth.middleware';
-import {AuthStrategy} from '../authentication/strategies/strategies-list.enum';
+import {AuthStrategy} from '../authentication/strategies-list.enum';
 
 @Module({
     modules: [
@@ -23,7 +23,10 @@ import {AuthStrategy} from '../authentication/strategies/strategies-list.enum';
         ...usersProviders,
         UsersService
     ],
-    exports: [...usersProviders]
+    exports: [
+        ...usersProviders,
+        UsersService
+    ]
 })
 export class UsersModule implements NestModule {
     public configure(consumer: MiddlewaresConsumer) {

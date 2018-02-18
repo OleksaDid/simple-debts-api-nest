@@ -1,7 +1,8 @@
-import {OperationsCollectionRef} from "../operations/operations.providers";
+import {OperationsCollectionRef} from "../../operations/operations.providers";
 import {Schema, SchemaType} from "mongoose";
-import {DebtsAccountType, DebtsStatus} from "./debt.interface";
-import {UserCollectionRef} from "../users/users.providers";
+import {UserCollectionRef} from "../../users/users.providers";
+import {DebtsAccountType} from './debts-account-type.enum';
+import {DebtsStatus} from './debts-status.enum';
 
 
 const DebtsTypeSchemaType = 'DebtsType';

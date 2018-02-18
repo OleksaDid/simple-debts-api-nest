@@ -1,5 +1,5 @@
 import * as passport from 'passport';
-import {AuthStrategy} from '../../strategies/strategies-list.enum';
+import {AuthStrategy} from '../../strategies-list.enum';
 import {Middleware} from '@nestjs/common';
 import {NestMiddleware} from '@nestjs/common/interfaces/middlewares';
 

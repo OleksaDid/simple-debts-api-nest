@@ -14,11 +14,7 @@ export class LoginController {
 
 
 
-    /*
-    * GET
-    * /login/facebook
-    * @header Authorization Must contain 'Bearer <FB_TOKEN>'
-     */
+
     @ApiImplicitHeader({
         name: 'Authorization',
         description: 'Must contain \'Bearer *FB_TOKEN*\'',
@@ -38,11 +34,9 @@ export class LoginController {
         return user;
     };
 
-    /*
-    * GET
-    * login/refresh_token
-    * @header Authorization Must contain 'Bearer <REFRESH_TOKEN>'
-    */
+
+
+
     @ApiImplicitHeader({
         name: 'Authorization',
         description: 'Must contain \'Bearer *REFRESH_TOKEN*\'',
@@ -62,12 +56,9 @@ export class LoginController {
         return user;
     };
 
-    /*
-     * POST
-     * /login/local
-     * @param email String User's email
-     * @param password String User's password
-     */
+
+
+
     @ApiResponse({
         status: 201,
         description: 'You are logged in',
@@ -86,10 +77,9 @@ export class LoginController {
     };
 
 
-    /**
-     * GET /login/status
-     * @param {Response} res
-     */
+
+
+
     @ApiBearerAuth()
     @ApiResponse({
         status: 200,

@@ -6,6 +6,9 @@ import {operationsProviders} from "./operations.providers";
     modules: [DatabaseModule],
     components: [
         ...operationsProviders
+    ],
+    exports: [
+        ...operationsProviders
     ]
 })
 export class OperationsModule {}

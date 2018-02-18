@@ -3,10 +3,10 @@ import * as jwt from 'jsonwebtoken';
 
 import { UserInterface } from '../../../users/models/user.interface';
 import { SendUserDto } from '../../../users/models/user.dto';
-import {UsersProvider} from "../../../users/users.providers";
 import {Model} from "mongoose";
 import {AccessJwtPayload, RefreshJwtPayload} from "../../models/jwt-payload";
 import {AuthUser} from "../../models/auth-user";
+import {UsersProvider} from '../../../users/users-providers.enum';
 
 
 

@@ -1,4 +1,4 @@
-import {IsMongoId, IsNotEmpty, IsOptional, IsString, IsUrl, Length} from 'class-validator';
+import {IsBoolean, IsMongoId, IsNotEmpty, IsOptional, IsString, IsUrl, Length} from 'class-validator';
 import {ApiModelProperty} from '@nestjs/swagger';
 
 export class SendUserDto {
@@ -62,7 +62,11 @@ export class UpdateUserDataDto {
 }
 
 export class CreateVirtualUserDto {
+    @IsNotEmpty()
+    @IsString()
     name: string;
+
+    @IsBoolean()
     virtual: boolean;
 
     constructor(name: string) {
@@ -71,13 +75,14 @@ export class CreateVirtualUserDto {
     }
 }
 
-export class CloneRealUserToVirtualDto {
-    name: string;
+export class CloneRealUserToVirtualDto extends CreateVirtualUserDto {
+    @IsNotEmpty()
+    @IsUrl({ require_tld: false})
     picture: string;
-    virtual = true;
 
     constructor(name: string, picture: string) {
-        this.name = name + ' BOT';
+        super(name);
+        this.name = this.name + ' BOT';
         this.picture = picture;
     }
 }

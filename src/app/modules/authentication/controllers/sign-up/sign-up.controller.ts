@@ -13,12 +13,8 @@ export class SignUpController {
     ) {}
 
 
-    /*
-    * POST
-    * /sign-up/local
-    * @param email String User's email
-    * @param password String User's password must be form 6 to 20 symbols length
-     */
+    
+    
     @ApiResponse({
         status: 201,
         description: 'You are successfully signed up',

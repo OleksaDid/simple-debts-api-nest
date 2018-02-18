@@ -4,7 +4,7 @@ import {LoginController} from './controllers/login/login.controller';
 import {SignUpController} from './controllers/sign-up/sign-up.controller';
 import {UsersModule} from "../users/users.module";
 import {MiddlewaresConsumer} from "@nestjs/common/interfaces/middlewares";
-import {AuthStrategy} from "./strategies/strategies-list.enum";
+import {AuthStrategy} from "./strategies-list.enum";
 import {LocalSignUpStrategy} from './strategies/local-sign-up.strategy';
 import {LocalLoginStrategy} from './strategies/local-login.strategy';
 import {FacebookLoginStrategy} from './strategies/facebook-login.strategy';

@@ -2,11 +2,11 @@ import * as passport from 'passport';
 import * as FacebookTokenStrategy from 'passport-facebook-token';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import {Component, Inject} from '@nestjs/common';
-import {UsersProvider} from "../../users/users.providers";
 import {UserInterface} from "../../users/models/user.interface";
 import {Model} from "mongoose";
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {ImagesHelper} from '../../../common/classes/images-helper';
+import {UsersProvider} from '../../users/users-providers.enum';
 
 
 @Component()

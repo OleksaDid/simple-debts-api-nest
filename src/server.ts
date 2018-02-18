@@ -80,6 +80,8 @@ async function bootstrap() {
         .addTag('login')
         .addTag('sign_up')
         .addTag('users')
+        .addTag('debts')
+        .addTag('debts_multiple')
         .build();
     const document = SwaggerModule.createDocument(app, options);
     SwaggerModule.setup('/api', app, document);

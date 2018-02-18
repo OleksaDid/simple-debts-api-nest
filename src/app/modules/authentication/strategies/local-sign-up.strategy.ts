@@ -2,14 +2,14 @@ import * as passport from 'passport';
 import * as LocalStrategy from 'passport-local';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import {Component, HttpStatus, Inject} from '@nestjs/common';
-import {UsersProvider} from "../../users/users.providers";
 import {UserInterface} from "../../users/models/user.interface";
 import {Model} from "mongoose";
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";
-import {AuthStrategy} from "./strategies-list.enum";
+import {AuthStrategy} from "../strategies-list.enum";
 import {EMAIL_NAME_PATTERN, EMAIL_PATTERN, PASSWORD_LENGTH_RESTRICTIONS} from "../../../common/constants/constants";
 import {ImagesHelper} from "../../../common/classes/images-helper";
+import {UsersProvider} from '../../users/users-providers.enum';
 
 
 @Component()
