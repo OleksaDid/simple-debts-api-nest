@@ -9,11 +9,11 @@ import {DebtsAccountType} from '../../models/debts-account-type.enum';
 import {SendUserDto} from '../../../users/models/user.dto';
 import {DebtsStatus} from '../../models/debts-status.enum';
 import {OperationsProvider} from '../../../operations/operations.providers';
-import {OperationInterface} from '../../../operations/operation.interface';
+import {OperationInterface} from '../../../operations/models/operation.interface';
 import {DebtsProvider} from '../../debts-providers.enum';
 import {UsersProvider} from '../../../users/users-providers.enum';
 import {DebtResponseDto} from '../../models/debt-response.dto';
-import {OperationResponseDto} from '../../../operations/operation-response.dto';
+import {OperationResponseDto} from '../../../operations/models/operation-response.dto';
 import {DebtsMultipleService} from '../debts-multiple/debts-multiple.service';
 import {DebtsSingleService} from '../debts-single/debts-single.service';
 

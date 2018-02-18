@@ -1,5 +1,5 @@
 import { Document } from 'mongoose';
-import { OperationInterface } from '../../operations/operation.interface';
+import { OperationInterface } from '../../operations/models/operation.interface';
 import {Id} from "../../../common/types/types";
 import {DebtsAccountType} from './debts-account-type.enum';
 import {DebtsStatus} from './debts-status.enum';

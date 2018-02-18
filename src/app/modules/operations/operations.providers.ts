@@ -1,6 +1,6 @@
 import { Connection } from 'mongoose';
 import {DatabaseProvider} from "../database/database.providers";
-import {OperationsSchema} from "./operation.schema";
+import {OperationsSchema} from "./models/operation.schema";
 
 export enum OperationsProvider {
     OperationsModelToken = 'OperationsModelToken'

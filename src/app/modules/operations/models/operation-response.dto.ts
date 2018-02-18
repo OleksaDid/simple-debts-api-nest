@@ -1,9 +1,10 @@
-import {Id} from '../../common/types/types';
+import {Id} from '../../../common/types/types';
 import {OperationStatus} from './operation-status.enum';
 import {ApiModelProperty} from '@nestjs/swagger';
 import {IsDateString, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsPositive, IsString, Length} from 'class-validator';
+import {OperationBody} from './operation-body.class';
 
-export class OperationResponseDto {
+export class OperationResponseDto extends OperationBody {
     @ApiModelProperty({
         description: 'operation id',
         type: 'string'
@@ -19,31 +20,6 @@ export class OperationResponseDto {
     @IsString()
     @IsDateString()
     date: Date;
-
-    @ApiModelProperty({
-        description: 'amount of money given',
-        type: 'number'
-    })
-    @IsNumber()
-    @IsPositive()
-    moneyAmount: number;
-
-    @ApiModelProperty({
-        description: 'id of user who receives money',
-        type: 'string'
-    })
-    @IsNotEmpty()
-    @IsMongoId()
-    moneyReceiver: Id;
-
-    @ApiModelProperty({
-        description: 'some notes about operation',
-        type: 'string'
-    })
-    @IsNotEmpty()
-    @IsString()
-    @Length(0, 70)
-    description: string;
 
     @ApiModelProperty({
         description: 'operation status',
@@ -62,6 +38,7 @@ export class OperationResponseDto {
     statusAcceptor: Id;
 
     constructor(id: Id, date: Date, moneyAmount: number, moneyReceiver: Id, description: string, status: OperationStatus, statusAcceptor: Id) {
+        super();
         this.id = id;
         this.date = date;
         this.moneyAmount = moneyAmount;

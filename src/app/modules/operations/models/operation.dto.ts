@@ -1,5 +1,5 @@
-import {Id} from "../../common/types/types";
-import {DebtsAccountType} from '../debts/models/debts-account-type.enum';
+import {Id} from "../../../common/types/types";
+import {DebtsAccountType} from '../../debts/models/debts-account-type.enum';
 import {OperationStatus} from './operation-status.enum';
 
 export class OperationDto {

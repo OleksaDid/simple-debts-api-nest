@@ -28,7 +28,8 @@ import {DebtsSingleService} from './services/debts-single/debts-single.service';
         DebtsSingleService
     ],
     exports: [
-        ...debtsProviders
+        ...debtsProviders,
+        DebtsService
     ]
 })
 export class DebtsModule {}

@@ -1,6 +1,6 @@
-import {DebtsCollectionRef} from "../debts/debts.providers";
+import {DebtsCollectionRef} from "../../debts/debts.providers";
 import {Schema, SchemaType} from "mongoose";
-import {UserCollectionRef} from "../users/users.providers";
+import {UserCollectionRef} from "../../users/users.providers";
 import {OperationStatus} from './operation-status.enum';
 
 

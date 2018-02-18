@@ -1,5 +1,5 @@
 import {Id} from "../../../common/types/types";
-import {OperationInterface} from "../../operations/operation.interface";
+import {OperationInterface} from "../../operations/models/operation.interface";
 import {
     ArrayMaxSize, ArrayMinSize, ArrayUnique, IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsPositive,
     IsString,

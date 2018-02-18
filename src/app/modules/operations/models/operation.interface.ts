@@ -1,5 +1,5 @@
 import { Document } from 'mongoose';
-import {Id} from "../../common/types/types";
+import {Id} from "../../../common/types/types";
 import {OperationStatus} from './operation-status.enum';
 
 
