@@ -10,6 +10,7 @@
     "target": "es6",
     "sourceMap": true,
     "noStrictGenericChecks": true,
+    "skipLibCheck": true,
     "allowJs": true,
     "outDir": "./bin"
   },
