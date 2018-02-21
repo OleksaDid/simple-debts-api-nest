@@ -9,6 +9,7 @@
     "experimentalDecorators": true,
     "target": "es6",
     "sourceMap": true,
+    "noStrictGenericChecks": true,
     "allowJs": true,
     "outDir": "./bin"
   },
