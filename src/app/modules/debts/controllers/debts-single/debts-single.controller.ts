@@ -12,8 +12,8 @@ import {HttpWithRequestException} from '../../../../services/error-handler/http-
 import {DebtsSingleService} from '../../services/debts-single/debts-single.service';
 
 @ApiBearerAuth()
-@ApiUseTags('debts_single')
-@Controller('debts_single')
+@ApiUseTags('debts/single')
+@Controller('debts/single')
 export class DebtsSingleController {
 
 

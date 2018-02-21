@@ -11,8 +11,8 @@ import {DebtsMultipleService} from '../../services/debts-multiple/debts-multiple
 
 
 @ApiBearerAuth()
-@ApiUseTags('debts_multiple')
-@Controller('debts_multiple')
+@ApiUseTags('debts/multiple')
+@Controller('debts/multiple')
 export class DebtsMultipleController {
 
 
