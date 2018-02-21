@@ -67,6 +67,6 @@
     "nodemon": "^1.14.12",
     "sinon": "^2.4.1",
     "ts-node": "^3.3.0",
-    "typescript": "^2.3.4"
+    "typescript": "^2.7.1"
   }
 }
