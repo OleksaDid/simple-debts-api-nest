@@ -3,13 +3,15 @@ import {AuthenticationModule} from "./modules/authentication/authentication.modu
 import {UsersModule} from './modules/users/users.module';
 import {DebtsModule} from './modules/debts/debts.module';
 import {OperationsModule} from './modules/operations/operations.module';
+import {HealthModule} from './modules/health/health.module';
 
 @Module({
     modules: [
         AuthenticationModule,
         UsersModule,
         DebtsModule,
-        OperationsModule
+        OperationsModule,
+        HealthModule
     ]
 })
 export class ApplicationModule {}
