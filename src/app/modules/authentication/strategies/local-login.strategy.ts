@@ -2,12 +2,12 @@ import * as passport from 'passport';
 import * as LocalStrategy from 'passport-local';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import {Component, HttpStatus, Inject} from '@nestjs/common';
-import {UsersProvider} from "../../users/users.providers";
-import {UserInterface} from "../../users/user.interface";
+import {UserInterface} from "../../users/models/user.interface";
 import {Model} from "mongoose";
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";
-import {AuthStrategy} from "./strategies-list.enum";
+import {AuthStrategy} from "../strategies-list.enum";
+import {UsersProvider} from '../../users/users-providers.enum';
 
 
 @Component()
@@ -31,17 +31,18 @@ export class LocalLoginStrategy extends LocalStrategy {
 
         // find a user whose email is the same as the forms email
         // we are checking to see if the user trying to login already exists
-        return this.User.findOne({ 'email' :  email })
+        return this.User
+            .findOne({ 'email' :  email })
             .then((user: UserInterface) => {
 
                 // if no user is found, return the message
                 if (!user) {
-                    throw new HttpWithRequestException('No user is found', HttpStatus.NOT_FOUND, req);
+                    throw new HttpWithRequestException('No user is found', HttpStatus.BAD_REQUEST, req);
                 }
 
                 // if the user is found but the password is wrong
                 if (!user.validPassword(password)) {
-                    throw new HttpWithRequestException('Wrong password', HttpStatus.NON_AUTHORITATIVE_INFORMATION, req);
+                    throw new HttpWithRequestException('Wrong password', HttpStatus.BAD_REQUEST, req);
                 }
 
                 // all is well, return successful user

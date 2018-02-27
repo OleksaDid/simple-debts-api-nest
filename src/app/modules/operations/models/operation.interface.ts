@@ -1,10 +1,7 @@
 import { Document } from 'mongoose';
-import {Id} from "../../common/types/types";
+import {Id} from "../../../common/types/types";
+import {OperationStatus} from './operation-status.enum';
 
-export enum OperationStatus {
-    CREATION_AWAITING = 'CREATION_AWAITING',
-    UNCHANGED = 'UNCHANGED'
-}
 
 export interface OperationInterface extends Document {
     debtsId: Id;

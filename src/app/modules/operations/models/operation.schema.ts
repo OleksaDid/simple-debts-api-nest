@@ -1,7 +1,7 @@
-import {DebtsCollectionRef} from "../debts/debts.providers";
-import {OperationStatus} from "./operation.interface";
+import {DebtsCollectionRef} from "../../debts/debts.providers";
 import {Schema, SchemaType} from "mongoose";
-import {UserCollectionRef} from "../users/users.providers";
+import {UserCollectionRef} from "../../users/users.providers";
+import {OperationStatus} from './operation-status.enum';
 
 
 const OperationStatusCodeSchemaType = 'StatusCodeOperations';

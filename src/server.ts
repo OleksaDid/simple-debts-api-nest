@@ -16,10 +16,10 @@ import * as helmet from 'helmet';
 import * as Ddos from 'ddos';
 import { NestFactory } from '@nestjs/core';
 import { ApplicationModule } from './app/app.module';
-import {INestApplication} from '@nestjs/common/interfaces/nest-application.interface';
 import {ErrorHandler} from "./app/services/error-handler/error-handler.service";
 import {HttpWithExceptionFilter} from "./app/filters/http-exception.filter";
-import {UncaughtExceptionFilter} from "./app/filters/uncaught-exception.filter";
+import {ModelValidationPipe} from './app/pipes/model-validation.pipe';
+import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
 
 const server = express();
 
@@ -28,6 +28,10 @@ const ErrorHandlerService = new ErrorHandler();
 
 async function bootstrap() {
     const app = await NestFactory.create(ApplicationModule, server);
+
+    // Request handler (setup to interceptors?)
+    app.use(ErrorHandlerService.getRequestHandler());
+
 
     // General
     app.use(compression());
@@ -55,15 +59,27 @@ async function bootstrap() {
         app.use(ddos.express);
     }
 
-    // Request handler (setup to interceptors?)
-    app.use(ErrorHandlerService.getRequestHandler());
 
+    // Global pipes
+    app.useGlobalPipes(new ModelValidationPipe());
 
 
     // Error handling
     app.use(ErrorHandlerService.getErrorHandler());
 
     app.useGlobalFilters(new HttpWithExceptionFilter());
+
+    // Swagger
+    const options = new DocumentBuilder()
+        .setTitle('Simple Debts')
+        .setDescription('Simple Debts API powered by Nest')
+        .setVersion('1.0')
+        .addBearerAuth('Authorization', 'header')
+        .setSchemes('http')
+        .setSchemes('https')
+        .build();
+    const document = SwaggerModule.createDocument(app, options);
+    SwaggerModule.setup('/api', app, document);
 
 
     const port = +process.env.PORT || 10010;

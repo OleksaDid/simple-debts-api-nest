@@ -1,10 +1,8 @@
 import { Connection } from 'mongoose';
 import {DatabaseProvider} from "../database/database.providers";
-import {DebtSchema} from "./debt.schema";
+import {DebtSchema} from "./models/debt.schema";
+import {DebtsProvider} from './debts-providers.enum';
 
-export enum DebtsProvider {
-    DebtsModelToken = 'DebtsModelToken'
-}
 
 export const DebtsCollectionRef = 'Debts';
 
