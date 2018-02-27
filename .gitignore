@@ -148,3 +148,6 @@ public/
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+# builds folder
+builds/
