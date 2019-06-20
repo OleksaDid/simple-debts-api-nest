@@ -12,7 +12,6 @@ import * as express from 'express';
 import * as compression from 'compression';
 import * as bodyParser from 'body-parser';
 import * as expressValidator from 'express-validator';
-import * as passport from 'passport';
 import * as helmet from 'helmet';
 import * as Ddos from 'ddos';
 import { NestFactory } from '@nestjs/core';
@@ -40,8 +39,6 @@ async function bootstrap() {
     app.use(bodyParser.urlencoded({ extended: true }));
 
     app.use(expressValidator());
-
-    app.use(passport.initialize());
 
     app.use(express.static('public', { maxAge: 31557600000 }));
 

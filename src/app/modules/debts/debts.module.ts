@@ -10,26 +10,28 @@ import {DebtsMultipleService} from './services/debts-multiple/debts-multiple.ser
 import {DebtsSingleService} from './services/debts-single/debts-single.service';
 import {DebtSchema} from './models/debt.schema';
 import {DebtsCollectionRef} from './models/debts-collection-ref';
+import {AuthenticationModule} from '../authentication/authentication.module';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([{ name: DebtsCollectionRef, schema: DebtSchema }]),
-        forwardRef(() => UsersModule),
-        forwardRef(() => OperationsModule)
-    ],
-    controllers: [
-        DebtsController,
-        DebtsMultipleController,
-        DebtsSingleController
-    ],
-    providers: [
-        DebtsService,
-        DebtsMultipleService,
-        DebtsSingleService
-    ],
-    exports: [
-        MongooseModule.forFeature([{ name: DebtsCollectionRef, schema: DebtSchema }]),
-        DebtsService
-    ]
+  imports: [
+    MongooseModule.forFeature([{ name: DebtsCollectionRef, schema: DebtSchema }]),
+    forwardRef(() => UsersModule),
+    forwardRef(() => OperationsModule),
+    forwardRef(() => AuthenticationModule),
+  ],
+  controllers: [
+    DebtsController,
+    DebtsMultipleController,
+    DebtsSingleController
+  ],
+  providers: [
+    DebtsService,
+    DebtsMultipleService,
+    DebtsSingleService
+  ],
+  exports: [
+    MongooseModule.forFeature([{ name: DebtsCollectionRef, schema: DebtSchema }]),
+    DebtsService
+  ]
 })
 export class DebtsModule {}

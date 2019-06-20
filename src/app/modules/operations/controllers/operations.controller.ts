@@ -1,4 +1,5 @@
-import {Body, Controller, Delete, Param, Post} from '@nestjs/common';
+import {Body, Controller, Delete, Param, Post, UseGuards} from '@nestjs/common';
+import {AuthGuard} from '@nestjs/passport';
 import {ApiBearerAuth, ApiResponse, ApiUseTags} from '@nestjs/swagger';
 import {OperationsService} from '../services/operations.service';
 import {CreateOperationDto} from '../models/create-operation.dto';
@@ -28,6 +29,7 @@ export class OperationsController {
 
 
 
+    @UseGuards(AuthGuard())
     @Post()
     async createOperation(
       @Body() createOperationDto: CreateOperationDto,
@@ -46,6 +48,7 @@ export class OperationsController {
 
 
 
+    @UseGuards(AuthGuard())
     @Delete(':id')
     async deleteOperation(
       @Param() params: IdParamDto,
@@ -58,6 +61,7 @@ export class OperationsController {
 
 
 
+    @UseGuards(AuthGuard())
     @Post(':id/creation/accept')
     async acceptOperation(
         @Param() params: IdParamDto,
@@ -70,6 +74,7 @@ export class OperationsController {
 
 
 
+    @UseGuards(AuthGuard())
     @Post(':id/creation/decline')
     async declineOperation(
         @Param() params: IdParamDto,

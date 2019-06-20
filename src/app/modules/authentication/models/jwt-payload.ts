@@ -2,13 +2,7 @@ import {Id} from "../../../common/types/types";
 import {ACCESS_TOKEN_EXP_SECONDS, REFRESH_TOKEN_EXP_SECONDS} from "../../../common/constants/constants";
 import {DateHelper} from "../../../common/classes/date-helper";
 
-export interface JwtPayloadInterface {
-    id: Id;
-    exp: number;
-    jwtid: number;
-}
-
-class JwtPayloadFactory implements JwtPayloadInterface {
+export class JwtPayload {
     id: Id;
     exp: number;
     readonly jwtid = Math.ceil(Math.random() * 10000);
@@ -20,13 +14,13 @@ class JwtPayloadFactory implements JwtPayloadInterface {
 }
 
 
-export class RefreshJwtPayload extends JwtPayloadFactory implements JwtPayloadInterface {
+export class RefreshJwtPayload extends JwtPayload {
     constructor(userId: Id) {
         super(userId, REFRESH_TOKEN_EXP_SECONDS);
     }
 }
 
-export class AccessJwtPayload extends JwtPayloadFactory implements JwtPayloadInterface {
+export class AccessJwtPayload extends JwtPayload {
     constructor(userId: Id) {
         super(userId, ACCESS_TOKEN_EXP_SECONDS);
     }

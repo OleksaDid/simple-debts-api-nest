@@ -1,4 +1,4 @@
-import {HttpStatus, Injectable} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {InjectModel} from '@nestjs/mongoose';
 import {Id} from '../../../common/types/types';
 import {Model, Types} from 'mongoose';
@@ -6,7 +6,6 @@ import {OperationInterface} from '../models/operation.interface';
 import {DebtInterface} from '../../debts/models/debt.interface';
 import {DebtsStatus} from '../../debts/models/debts-status.enum';
 import {OperationDto} from '../models/operation.dto';
-import {HttpWithRequestException} from '../../../services/error-handler/http-with-request.exception';
 import {DebtsAccountType} from '../../debts/models/debts-account-type.enum';
 import {OperationStatus} from '../models/operation-status.enum';
 import {OperationsCollectionRef} from '../models/operation-collection-ref';
@@ -37,7 +36,7 @@ export class OperationsService {
       const newOperation = new OperationDto(debtsId, moneyAmount, moneyReceiver, description, statusAcceptor, debt.type);
 
       if(debt.statusAcceptor && debt.statusAcceptor.toString() === userId) {
-          throw new HttpWithRequestException('Cannot modify debts that need acceptance', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Cannot modify debts that need acceptance', HttpStatus.BAD_REQUEST);
       }
 
       const operation = await this.Operation.create(newOperation);
@@ -78,7 +77,7 @@ export class OperationsService {
       const deletedOperation = await this.Operation.findByIdAndRemove(operationId);
 
       if(!deletedOperation) {
-          throw new HttpWithRequestException('Operation not found', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
       }
 
 
@@ -105,7 +104,7 @@ export class OperationsService {
 
 
       if(!operation) {
-          throw new HttpWithRequestException('Operation not found', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
       }
 
       const debt = await this.Debts
@@ -129,7 +128,7 @@ export class OperationsService {
       const operation = await this.Operation.findOne({_id: operationId, status: OperationStatus.CREATION_AWAITING});
 
       if(!operation) {
-          throw new HttpWithRequestException('Operation is not found', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Operation is not found', HttpStatus.BAD_REQUEST);
       }
 
       const debt = await this.Debts
@@ -140,7 +139,7 @@ export class OperationsService {
           .populate({ path: 'moneyOperations', select: 'status'});
 
       if(!debt) {
-          throw new HttpWithRequestException('You don\'t have permissions to delete this operation', HttpStatus.BAD_REQUEST);
+          throw new HttpException('You don\'t have permissions to delete this operation', HttpStatus.BAD_REQUEST);
       }
 
       await this.Operation.findByIdAndRemove(operationId);

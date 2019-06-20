@@ -1,10 +1,9 @@
-import {HttpStatus, Injectable} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {InjectModel} from '@nestjs/mongoose';
 import {Model} from 'mongoose';
 import {UserInterface} from '../../../users/models/user.interface';
 import {Id} from '../../../../common/types/types';
 import {DebtInterface} from '../../models/debt.interface';
-import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {DebtsListDto} from '../../models/debt.dto';
 import {DebtsAccountType} from '../../models/debts-account-type.enum';
 import {SendUserDto} from '../../../users/models/user.dto';
@@ -60,7 +59,7 @@ export class DebtsService {
           .populate({ path: 'users', select: 'name picture virtual'});
 
       if(!debt) {
-          throw new HttpWithRequestException('Debts with id ' + debtsId + ' is not found', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Debts with id ' + debtsId + ' is not found', HttpStatus.BAD_REQUEST);
       }
 
       return this.formatDebt(debt, userId, true);
@@ -72,7 +71,7 @@ export class DebtsService {
           .populate({ path: 'users', select: 'name picture'});
 
       if(!debt) {
-          throw new HttpWithRequestException('Debts not found', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Debts not found', HttpStatus.BAD_REQUEST);
       }
 
       if(debt.type === DebtsAccountType.SINGLE_USER) {

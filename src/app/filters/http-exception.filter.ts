@@ -1,23 +1,30 @@
-import {ExceptionFilter, Catch, ArgumentsHost} from '@nestjs/common';
+import {ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus} from '@nestjs/common';
 import {Response} from "express";
-import {HttpWithRequestException} from "../services/error-handler/http-with-request.exception";
 import {ErrorHandler} from "../services/error-handler/error-handler.service";
 import {ResponseError} from "../common/classes/response-error";
 
-@Catch(HttpWithRequestException)
-export class HttpWithExceptionFilter implements ExceptionFilter<HttpWithRequestException> {
-    private ErrorHandler = new ErrorHandler();
+@Catch()
+export class HttpWithExceptionFilter implements ExceptionFilter {
 
-    catch(exception: HttpWithRequestException, host: ArgumentsHost) {
-        const ctx = host.switchToHttp();
-        const response = ctx.getResponse<Response>();
-        const request = ctx.getRequest<Request>();
-        const status = exception.getStatus();
-        const error = exception.getResponse();
+  private ErrorHandler = new ErrorHandler();
+
+  catch(exception: HttpException, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
 
-        this.ErrorHandler.captureError(error, request);
+    if(!(exception instanceof HttpException)) {
+      response
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json(new ResponseError(exception));
+    } else {
+      const status = exception.getStatus();
+      const error = exception.getResponse();
 
-        response.status(status).json(new ResponseError(error));
+      this.ErrorHandler.captureError(error, request);
+
+      response.status(status).json(new ResponseError(error));
     }
+  }
 }

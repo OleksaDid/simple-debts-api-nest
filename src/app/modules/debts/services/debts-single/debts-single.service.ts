@@ -1,6 +1,5 @@
-import {HttpStatus, Injectable} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {InjectModel} from '@nestjs/mongoose';
-import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {DebtInterface} from '../../models/debt.interface';
 import {DebtsStatus} from '../../models/debts-status.enum';
 import {DebtsAccountType} from '../../models/debts-account-type.enum';
@@ -34,7 +33,7 @@ export class DebtsSingleService {
         const errors = await validate(virtUser);
 
         if(errors) {
-            throw new HttpWithRequestException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
+            throw new HttpException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
         }
 
         const debts = await this.Debts
@@ -46,7 +45,7 @@ export class DebtsSingleService {
             debts.length > 0 &&
             debts.some(debt => !!debt.users.find(user => user['name'] === userName && user['virtual']))
         ) {
-            throw new HttpWithRequestException('You already have virtual user with such name', HttpStatus.BAD_REQUEST);
+            throw new HttpException('You already have virtual user with such name', HttpStatus.BAD_REQUEST);
         }
 
         const user = await this.User.create(virtUser);
@@ -80,7 +79,7 @@ export class DebtsSingleService {
             });
 
         if(!debt) {
-            throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Debt is not found', HttpStatus.BAD_REQUEST);
         }
 
         if(!debt.moneyOperations ||
@@ -103,7 +102,7 @@ export class DebtsSingleService {
             .lean();
 
         if(debtsWithConnectingUser && debtsWithConnectingUser['length'] > 0) {
-            throw new HttpWithRequestException('You already have Debt with this user', HttpStatus.BAD_REQUEST);
+            throw new HttpException('You already have Debt with this user', HttpStatus.BAD_REQUEST);
         }
 
 
@@ -111,15 +110,15 @@ export class DebtsSingleService {
             .findOne({_id: debtsId, type: DebtsAccountType.SINGLE_USER, users: {$in: [userId]}});
 
         if(!debt) {
-            throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Debt is not found', HttpStatus.BAD_REQUEST);
         }
 
         if(debt.status === DebtsStatus.CONNECT_USER) {
-            throw new HttpWithRequestException('Some user is already waiting for connection to this Debt', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Some user is already waiting for connection to this Debt', HttpStatus.BAD_REQUEST);
         }
 
         if(debt.status === DebtsStatus.USER_DELETED) {
-            throw new HttpWithRequestException('You can\'t connect user to this Debt until you resolve user deletion', HttpStatus.BAD_REQUEST);
+            throw new HttpException('You can\'t connect user to this Debt until you resolve user deletion', HttpStatus.BAD_REQUEST);
         }
 
         debt.status = DebtsStatus.CONNECT_USER;
@@ -196,7 +195,7 @@ export class DebtsSingleService {
                 {status: DebtsStatus.UNCHANGED, statusAcceptor: null});
 
         if(!debt) {
-            throw new HttpWithRequestException('Debt is not found', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Debt is not found', HttpStatus.BAD_REQUEST);
         }
     }
 }

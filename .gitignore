@@ -151,3 +151,4 @@ public/
 
 # builds folder
 builds/
+dist/

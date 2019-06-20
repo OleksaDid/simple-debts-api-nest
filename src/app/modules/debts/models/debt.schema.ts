@@ -1,4 +1,4 @@
-import {Schema, SchemaType} from "mongoose";
+import {Schema, SchemaType} from 'mongoose';
 import {DebtsAccountType} from './debts-account-type.enum';
 import {DebtsStatus} from './debts-status.enum';
 import {UserCollectionRef} from '../../users/models/user-collection-ref';

@@ -1,4 +1,5 @@
-import {forwardRef, Module, NestModule, RequestMethod, MiddlewareConsumer} from '@nestjs/common';
+import {forwardRef, Module} from '@nestjs/common';
+import {PassportModule} from '@nestjs/passport';
 import {AuthenticationService} from './services/authentication/authentication.service';
 import {LoginController} from './controllers/login/login.controller';
 import {SignUpController} from './controllers/sign-up/sign-up.controller';
@@ -9,10 +10,12 @@ import {LocalLoginStrategy} from './strategies/local-login.strategy';
 import {FacebookLoginStrategy} from './strategies/facebook-login.strategy';
 import {JwtStrategy} from './strategies/jwt.strategy';
 import {RefreshTokenStrategy} from './strategies/refresh-token.strategy';
-import {authMiddlewareFactory} from './middlewares/auth-middleware/auth.middleware';
 
 @Module({
-  imports: [forwardRef(() => UsersModule)],
+  imports: [
+    forwardRef(() => UsersModule),
+    PassportModule.register({ defaultStrategy: AuthStrategy.JWT_STRATEGY, session: false }),
+  ],
   providers: [
     AuthenticationService,
     LocalSignUpStrategy,
@@ -26,29 +29,8 @@ import {authMiddlewareFactory} from './middlewares/auth-middleware/auth.middlewa
     SignUpController
   ],
   exports: [
-    JwtStrategy
+    JwtStrategy,
+    PassportModule,
   ]
 })
-export class AuthenticationModule implements NestModule {
-    public configure(consumer: MiddlewareConsumer) {
-        consumer
-            .apply(authMiddlewareFactory(AuthStrategy.JWT_STRATEGY))
-            .forRoutes({ path: '/login/status', method: RequestMethod.GET });
-
-        consumer
-            .apply(authMiddlewareFactory(AuthStrategy.LOCAL_LOGIN_STRATEGY))
-            .forRoutes({ path: '/login/local', method: RequestMethod.POST });
-
-        consumer
-            .apply(authMiddlewareFactory(AuthStrategy.FACEBOOK_LOGIN_STRATEGY))
-            .forRoutes({ path: '/login/facebook', method: RequestMethod.GET });
-
-        consumer
-            .apply(authMiddlewareFactory(AuthStrategy.REFRESH_TOKEN_STRATEGY))
-            .forRoutes({ path: '/login/refresh_token', method: RequestMethod.GET });
-
-        consumer
-            .apply(authMiddlewareFactory(AuthStrategy.LOCAL_SIGN_UP_STRATEGY))
-            .forRoutes({ path: '/sign_up/local', method: RequestMethod.POST });
-    }
-}
+export class AuthenticationModule {}

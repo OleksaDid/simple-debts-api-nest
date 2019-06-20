@@ -1,6 +1,5 @@
-import {HttpStatus, Injectable} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {InjectModel} from '@nestjs/mongoose';
-import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {Id} from '../../../../common/types/types';
 import {DebtsStatus} from '../../models/debts-status.enum';
 import {DebtInterface} from '../../models/debt.interface';
@@ -32,7 +31,7 @@ export class DebtsMultipleService {
             .exec();
 
         if(!userToCreateDebtWith) {
-            throw new HttpWithRequestException('User is not found', HttpStatus.BAD_REQUEST);
+            throw new HttpException('User is not found', HttpStatus.BAD_REQUEST);
         }
 
         const debts = await this.Debts
@@ -41,7 +40,7 @@ export class DebtsMultipleService {
 
 
         if(debts) {
-            throw new HttpWithRequestException('Such debts object is already created', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Such debts object is already created', HttpStatus.BAD_REQUEST);
         }
 
         const newDebtsPayload = new DebtDto(creatorId, userId, DebtsAccountType.MULTIPLE_USERS, countryCode);
@@ -49,7 +48,7 @@ export class DebtsMultipleService {
         const errors = await validate(newDebtsPayload);
 
         if(errors) {
-            throw new HttpWithRequestException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
+            throw new HttpException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
         }
 
         return this.Debts.create(newDebtsPayload);
@@ -63,7 +62,7 @@ export class DebtsMultipleService {
         const errors = await validate(virtualUserPayload);
 
         if(errors) {
-            throw new HttpWithRequestException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
+            throw new HttpException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
         }
 
         const createdVirtualUser = await this.User.create([virtualUserPayload])[0];
@@ -110,7 +109,7 @@ export class DebtsMultipleService {
             );
 
         if(!debt) {
-            throw new HttpWithRequestException('Debts not found', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Debts not found', HttpStatus.BAD_REQUEST);
         }
     };
 
@@ -123,7 +122,7 @@ export class DebtsMultipleService {
             });
 
         if(!debt) {
-            throw new HttpWithRequestException('Debts not found', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Debts not found', HttpStatus.BAD_REQUEST);
         }
     };
 }

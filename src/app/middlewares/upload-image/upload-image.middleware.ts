@@ -1,8 +1,7 @@
-import {HttpStatus, Injectable, NestMiddleware} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable, NestMiddleware} from '@nestjs/common';
 import * as multer from 'multer';
 import * as path from 'path';
 import {IMAGES_FOLDER_DIR} from "../../common/constants/constants";
-import {HttpWithRequestException} from "../../services/error-handler/http-with-request.exception";
 
 @Injectable()
 export class UploadImageMiddleware implements NestMiddleware {
@@ -14,7 +13,7 @@ export class UploadImageMiddleware implements NestMiddleware {
                 const allowedExtensions = ['.png', '.jpg', '.jpeg'];
 
                 if (allowedExtensions.indexOf(ext) === -1) {
-                    throw new HttpWithRequestException('Only images are allowed', HttpStatus.UNSUPPORTED_MEDIA_TYPE, req);
+                    throw new HttpException('Only images are allowed', HttpStatus.UNSUPPORTED_MEDIA_TYPE);
                 }
 
                 callback(null, true);
@@ -24,7 +23,7 @@ export class UploadImageMiddleware implements NestMiddleware {
 
         upload(req, res, err => {
             if(err) {
-                throw new HttpWithRequestException(err, HttpStatus.EXPECTATION_FAILED, req);
+                throw new HttpException(err, HttpStatus.EXPECTATION_FAILED);
             }
 
             next();

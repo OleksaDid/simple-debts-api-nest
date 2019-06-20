@@ -1,4 +1,5 @@
-import {Body, Controller, Get, Post, Query} from '@nestjs/common';
+import {Body, Controller, Get, Post, Query, UseGuards} from '@nestjs/common';
+import {AuthGuard} from '@nestjs/passport';
 import {UsersService} from '../../services/users/users.service';
 import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
 import {ReqUser} from '../../../../common/decorators/request-user.decorator';
@@ -27,6 +28,7 @@ export class UsersController {
         status: 400,
         description: 'Bad Request'
     })
+    @UseGuards(AuthGuard())
     @Get()
     getUsersArrayByName(
         @Query() userNameDto: UserNameDto,
@@ -46,6 +48,7 @@ export class UsersController {
         status: 400,
         description: 'Bad Request'
     })
+    @UseGuards(AuthGuard())
     @Post()
     updateUserData(
         @Body() userNameDto: UpdateUserDataDto,

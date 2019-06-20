@@ -13,34 +13,32 @@ import {EnvField} from '../../../config/models/env-field.enum';
 @Injectable()
 export class AuthenticationService {
 
-
-    constructor(
-        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
-        private readonly _config: ConfigService
-    ) {}
-
+  constructor(
+    @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+    private readonly _config: ConfigService
+  ) {}
 
 
-    async updateTokensAndReturnUser(user: UserInterface, done): Promise<AuthUser> {
-        const payload = new AccessJwtPayload(user._id);
-        const refreshPayload = new RefreshJwtPayload(user._id);
+  async updateTokensAndReturnUser(user: UserInterface): Promise<AuthUser> {
+    const payload = new AccessJwtPayload(user._id);
+    const refreshPayload = new RefreshJwtPayload(user._id);
 
-        const token = jwt.sign(Object.assign({}, payload), this._config.get(EnvField.JWT_SECRET));
-        const refreshToken = jwt.sign(Object.assign({}, refreshPayload), this._config.get(EnvField.REFRESH_JWT_SECRET));
+    const token = jwt.sign(Object.assign({}, payload), this._config.get(EnvField.JWT_SECRET));
+    const refreshToken = jwt.sign(Object.assign({}, refreshPayload), this._config.get(EnvField.REFRESH_JWT_SECRET));
 
-        const authUser = new AuthUser(
-            new SendUserDto(user._id, user.name, user.picture),
-            token,
-            refreshToken
-        );
+    const authUser = new AuthUser(
+        new SendUserDto(user._id, user.name, user.picture),
+        token,
+        refreshToken
+    );
 
-        return this.User
-            .findByIdAndUpdate(user._id, {
-                accessTokenId: payload.jwtid,
-                refreshTokenId: refreshPayload.jwtid
-            })
-            .then(() => done(null, authUser))
-            .catch(err => done(err));
-    }
+    await this.User
+      .findByIdAndUpdate(user._id, {
+          accessTokenId: payload.jwtid,
+          refreshTokenId: refreshPayload.jwtid
+      });
+
+    return authUser;
+  }
 
 }

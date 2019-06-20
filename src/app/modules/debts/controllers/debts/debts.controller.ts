@@ -1,4 +1,5 @@
-import {Controller, Delete, Get, Param} from '@nestjs/common';
+import {Controller, Delete, Get, Param, UseGuards} from '@nestjs/common';
+import {AuthGuard} from '@nestjs/passport';
 import {DebtsService} from '../../services/debts/debts.service';
 import {ApiBearerAuth, ApiResponse, ApiUseTags} from '@nestjs/swagger';
 import {ReqUser} from '../../../../common/decorators/request-user.decorator';
@@ -30,6 +31,7 @@ export class DebtsController {
         status: 400,
         description: 'Bad Request'
     })
+    @UseGuards(AuthGuard())
     @Get()
     async getAllUserDebts(
         @ReqUser() user: SendUserDto
@@ -49,6 +51,7 @@ export class DebtsController {
         status: 400,
         description: 'Bad Request'
     })
+    @UseGuards(AuthGuard())
     @Get(':id')
     async getDebtsById(
         @Param() params: IdParamDto,
@@ -71,6 +74,7 @@ export class DebtsController {
         status: 400,
         description: 'Bad Request'
     })
+    @UseGuards(AuthGuard())
     @Delete(':id')
     async deleteDebt(
         @Param() params: IdParamDto,
