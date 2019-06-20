@@ -1,37 +1,36 @@
-import {HttpStatus, Middleware, NestMiddleware} from '@nestjs/common';
+import {HttpStatus, Injectable, NestMiddleware} from '@nestjs/common';
 import * as multer from 'multer';
 import * as path from 'path';
 import {IMAGES_FOLDER_DIR} from "../../common/constants/constants";
 import {HttpWithRequestException} from "../../services/error-handler/http-with-request.exception";
 
-@Middleware()
+@Injectable()
 export class UploadImageMiddleware implements NestMiddleware {
-  resolve(): (req, res, next) => void {
-      return (req, res, next) => {
-          const upload = multer({
-              storage: this.getMulterStorage(),
-              fileFilter: (req, file, callback) => {
-                  const ext = path.extname(file.originalname);
-                  const allowedExtensions = ['.png', '.jpg', '.jpeg'];
+    use(req: Request, res: Response, next: () => void): any {
+        const upload = multer({
+            storage: this.getMulterStorage(),
+            fileFilter: (req, file, callback) => {
+                const ext = path.extname(file.originalname);
+                const allowedExtensions = ['.png', '.jpg', '.jpeg'];
 
-                  if (allowedExtensions.indexOf(ext) === -1) {
-                      throw new HttpWithRequestException('Only images are allowed', HttpStatus.UNSUPPORTED_MEDIA_TYPE, req);
-                  }
+                if (allowedExtensions.indexOf(ext) === -1) {
+                    throw new HttpWithRequestException('Only images are allowed', HttpStatus.UNSUPPORTED_MEDIA_TYPE, req);
+                }
 
-                  callback(null, true);
-              },
-              fieldSize: 512
-          }).single('image');
+                callback(null, true);
+            },
+            fieldSize: 512
+        }).single('image');
 
-          upload(req, res, err => {
-              if(err) {
-                  throw new HttpWithRequestException(err, HttpStatus.EXPECTATION_FAILED, req);
-              }
+        upload(req, res, err => {
+            if(err) {
+                throw new HttpWithRequestException(err, HttpStatus.EXPECTATION_FAILED, req);
+            }
 
-              next();
-          });
-      }
-  }
+            next();
+        });
+    }
+
 
   private getMulterStorage() {
       return multer.diskStorage({

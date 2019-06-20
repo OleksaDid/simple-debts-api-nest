@@ -1,7 +1,8 @@
 import * as passport from 'passport';
 import * as passportJWT from 'passport-jwt';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {UserInterface} from "../../users/models/user.interface";
 import {Model} from "mongoose";
 import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";
@@ -9,18 +10,21 @@ import {AuthStrategy} from "../strategies-list.enum";
 import {JwtPayloadInterface} from '../models/jwt-payload';
 import {DateHelper} from '../../../common/classes/date-helper';
 import {SendUserDto} from '../../users/models/user.dto';
-import {UsersProvider} from '../../users/users-providers.enum';
+import {ConfigService} from '../../config/services/config.service';
+import {EnvField} from '../../config/models/env-field.enum';
+import {UserCollectionRef} from '../../users/models/user-collection-ref';
 
 
-@Component()
+@Injectable()
 export class JwtStrategy extends passportJWT.Strategy {
     constructor(
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+        private readonly _config: ConfigService
     ) {
         super(
             {
                 jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
-                secretOrKey: process.env.JWT_SECRET,
+                secretOrKey: _config.get(EnvField.JWT_SECRET),
                 ignoreExpiration: true
             },
             async (jwt_payload: JwtPayloadInterface, done) => await this.verify(jwt_payload, done)

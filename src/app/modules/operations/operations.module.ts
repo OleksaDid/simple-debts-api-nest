@@ -1,24 +1,24 @@
 import {forwardRef, Module} from '@nestjs/common';
-import {DatabaseModule} from "../database/database.module";
-import {operationsProviders} from "./operations.providers";
 import {OperationsService} from './services/operations.service';
 import {OperationsController} from './controllers/operations.controller';
 import {DebtsModule} from '../debts/debts.module';
+import {OperationsSchema} from './models/operation.schema';
+import {MongooseModule} from '@nestjs/mongoose';
+import {OperationsCollectionRef} from './models/operation-collection-ref';
 
 @Module({
-    modules: [
-        DatabaseModule,
+    imports: [
+        MongooseModule.forFeature([{ name: OperationsCollectionRef, schema: OperationsSchema }]),
         forwardRef(() => DebtsModule)
     ],
-    components: [
-        ...operationsProviders,
+    providers: [
         OperationsService
     ],
     controllers: [
         OperationsController
     ],
     exports: [
-        ...operationsProviders
+        MongooseModule.forFeature([{ name: OperationsCollectionRef, schema: OperationsSchema }]),
     ]
 })
 export class OperationsModule {}

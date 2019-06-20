@@ -1,20 +1,21 @@
 import * as passport from 'passport';
 import * as LocalStrategy from 'passport-local';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {UserInterface} from "../../users/models/user.interface";
 import {Model} from "mongoose";
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";
 import {AuthStrategy} from "../strategies-list.enum";
-import {UsersProvider} from '../../users/users-providers.enum';
+import {UserCollectionRef} from '../../users/models/user-collection-ref';
 
 
-@Component()
+@Injectable()
 export class LocalLoginStrategy extends LocalStrategy {
     constructor(
         private readonly authService: AuthenticationService,
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
     ) {
         super(
             {

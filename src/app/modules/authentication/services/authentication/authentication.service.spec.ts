@@ -1,17 +1,17 @@
 import {Test} from '@nestjs/testing';
 import {TestingModule} from '@nestjs/testing/testing-module';
 import {AuthenticationService} from './authentication.service';
-import {expect} from 'chai';
 
 describe('AuthenticationService', () => {
   let module: TestingModule;
   beforeEach(() => {
     return Test.createTestingModule({
-      components: [
+      providers: [
         AuthenticationService
       ]
-    }).compile()
-      .then(compiledModule => module = compiledModule);
+    })
+    .compile()
+    .then(compiledModule => module = compiledModule);
   });
 
   let service: AuthenticationService;
@@ -20,6 +20,6 @@ describe('AuthenticationService', () => {
   });
 
   it('should exist', () => {
-    expect(service).to.exist;
+    expect(service).toBeTruthy();
   });
 });

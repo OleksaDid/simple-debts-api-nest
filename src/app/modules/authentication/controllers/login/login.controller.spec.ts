@@ -1,25 +1,39 @@
 import {Test} from '@nestjs/testing';
-import {TestingModule} from '@nestjs/testing/testing-module';
-import {AuthenticationController} from './login.controller';
-import {expect} from 'chai';
+import {LoginController} from './login.controller';
+import {forwardRef} from '@nestjs/common';
+import {UsersModule} from '../../../users/users.module';
+import {AuthenticationService} from '../../services/authentication/authentication.service';
+import {LocalSignUpStrategy} from '../../strategies/local-sign-up.strategy';
+import {LocalLoginStrategy} from '../../strategies/local-login.strategy';
+import {FacebookLoginStrategy} from '../../strategies/facebook-login.strategy';
+import {JwtStrategy} from '../../strategies/jwt.strategy';
+import {RefreshTokenStrategy} from '../../strategies/refresh-token.strategy';
+import {SignUpController} from '../sign-up/sign-up.controller';
 
-describe('AuthenticationController', () => {
-  let module: TestingModule;
-  beforeEach(() => {
-    return Test.createTestingModule({
+describe('LoginController', () => {
+  let loginController: LoginController;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      imports: [forwardRef(() => UsersModule)],
+      providers: [
+        AuthenticationService,
+        LocalSignUpStrategy,
+        LocalLoginStrategy,
+        FacebookLoginStrategy,
+        JwtStrategy,
+        RefreshTokenStrategy
+      ],
       controllers: [
-        AuthenticationController
-      ]
-    }).compile()
-      .then(compiledModule => module = compiledModule);
-  });
+        LoginController,
+        SignUpController
+      ],
+    }).compile();
 
-  let controller: AuthenticationController;
-  beforeEach(() => {
-    controller = module.get(AuthenticationController);
+    loginController = module.get<LoginController>(LoginController);
   });
 
   it('should exist', () => {
-    expect(controller).to.exist;
+    expect(loginController).toBeTruthy();
   });
 });

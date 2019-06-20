@@ -1,8 +1,8 @@
-import {OperationsCollectionRef} from "../../operations/operations.providers";
 import {Schema, SchemaType} from "mongoose";
-import {UserCollectionRef} from "../../users/users.providers";
 import {DebtsAccountType} from './debts-account-type.enum';
 import {DebtsStatus} from './debts-status.enum';
+import {UserCollectionRef} from '../../users/models/user-collection-ref';
+import {OperationsCollectionRef} from '../../operations/models/operation-collection-ref';
 
 
 const DebtsTypeSchemaType = 'DebtsType';
@@ -54,19 +54,18 @@ Schema.Types[DebtsStatusCodeSchemaType] = StatusCodeDebts;
 
 
 
-
 export const DebtSchema = new Schema({
-    users: [{ type: Schema.Types.ObjectId, ref: UserCollectionRef }],
+    users: [{ type: Schema.Types.ObjectId, ref: UserCollectionRef}],
 
     type: Schema.Types[DebtsTypeSchemaType],
 
     countryCode: String,
 
     status: Schema.Types[DebtsStatusCodeSchemaType],
-    statusAcceptor: { type: Schema.Types.ObjectId, ref: UserCollectionRef },
+    statusAcceptor: { type: Schema.Types.ObjectId, ref: UserCollectionRef},
 
     summary: Number,
-    moneyReceiver: { type: Schema.Types.ObjectId, ref: UserCollectionRef },
+    moneyReceiver: { type: Schema.Types.ObjectId, ref: UserCollectionRef},
 
     moneyOperations: [{ type: Schema.Types.ObjectId, ref: OperationsCollectionRef }]
 }, { timestamps: true });

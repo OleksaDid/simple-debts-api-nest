@@ -1,4 +1,5 @@
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {DebtInterface} from '../../models/debt.interface';
 import {DebtsStatus} from '../../models/debts-status.enum';
@@ -12,16 +13,16 @@ import {validate} from 'class-validator';
 import {CreateVirtualUserDto} from '../../../users/models/user.dto';
 import {UsersService} from '../../../users/services/users/users.service';
 import {Model} from 'mongoose';
-import {OperationsProvider} from '../../../operations/operations.providers';
-import {DebtsProvider} from '../../debts-providers.enum';
-import {UsersProvider} from '../../../users/users-providers.enum';
+import {UserCollectionRef} from '../../../users/models/user-collection-ref';
+import {DebtsCollectionRef} from '../../models/debts-collection-ref';
+import {OperationsCollectionRef} from '../../../operations/models/operation-collection-ref';
 
-@Component()
+@Injectable()
 export class DebtsSingleService {
     constructor(
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>,
-        @Inject(DebtsProvider.DebtsModelToken) private readonly Debts: Model<DebtInterface>,
-        @Inject(OperationsProvider.OperationsModelToken) private readonly Operation: Model<OperationInterface>,
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+        @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
+        @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>,
         private readonly usersService: UsersService
     ) {}
 

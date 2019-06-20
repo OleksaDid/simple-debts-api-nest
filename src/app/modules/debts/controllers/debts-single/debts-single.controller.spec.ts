@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { TestingModule } from '@nestjs/testing/testing-module';
-import { DebtsSingleController } from './de-single.controller.ts';
+import { DebtsSingleController } from './debts-single.controller';
 import { expect } from 'chai';
 
 describe('DebtsSingleController', () => {

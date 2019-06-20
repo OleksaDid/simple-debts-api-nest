@@ -1,4 +1,5 @@
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {Model} from 'mongoose';
 import {UserInterface} from '../../../users/models/user.interface';
 import {Id} from '../../../../common/types/types';
@@ -8,23 +9,23 @@ import {DebtsListDto} from '../../models/debt.dto';
 import {DebtsAccountType} from '../../models/debts-account-type.enum';
 import {SendUserDto} from '../../../users/models/user.dto';
 import {DebtsStatus} from '../../models/debts-status.enum';
-import {OperationsProvider} from '../../../operations/operations.providers';
 import {OperationInterface} from '../../../operations/models/operation.interface';
-import {DebtsProvider} from '../../debts-providers.enum';
-import {UsersProvider} from '../../../users/users-providers.enum';
 import {DebtResponseDto} from '../../models/debt-response.dto';
 import {OperationResponseDto} from '../../../operations/models/operation-response.dto';
 import {DebtsMultipleService} from '../debts-multiple/debts-multiple.service';
 import {DebtsSingleService} from '../debts-single/debts-single.service';
+import {UserCollectionRef} from '../../../users/models/user-collection-ref';
+import {DebtsCollectionRef} from '../../models/debts-collection-ref';
+import {OperationsCollectionRef} from '../../../operations/models/operation-collection-ref';
 
-@Component()
+@Injectable()
 export class DebtsService {
 
 
   constructor(
-      @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>,
-      @Inject(DebtsProvider.DebtsModelToken) private readonly Debts: Model<DebtInterface>,
-      @Inject(OperationsProvider.OperationsModelToken) private readonly Operation: Model<OperationInterface>,
+      @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+      @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
+      @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>,
       private readonly multipleDebtsService: DebtsMultipleService,
       private readonly singleDebtsService: DebtsSingleService
   ) {}

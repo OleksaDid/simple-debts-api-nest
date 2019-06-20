@@ -2,9 +2,10 @@
  * Setup environment first of all
  */
 import * as dotenv from 'dotenv';
+import {EnvField} from './app/modules/config/models/env-field.enum';
 
-if(!process.env.ENVIRONMENT) {
-    dotenv.config({ path: __dirname + '/../config/.env.example' });
+if(!process.env[EnvField.NODE_ENV]) {
+    dotenv.config({ path: __dirname + '/../config/local.env' });
 }
 
 import * as express from 'express';
@@ -20,14 +21,13 @@ import {ErrorHandler} from "./app/services/error-handler/error-handler.service";
 import {HttpWithExceptionFilter} from "./app/filters/http-exception.filter";
 import {ModelValidationPipe} from './app/pipes/model-validation.pipe';
 import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
-
-const server = express();
+import {EnvType} from './app/modules/config/models/env-type.enum';
 
 const ddos = new Ddos;
 const ErrorHandlerService = new ErrorHandler();
 
 async function bootstrap() {
-    const app = await NestFactory.create(ApplicationModule, server);
+    const app = await NestFactory.create(ApplicationModule);
 
     // Request handler (setup to interceptors?)
     app.use(ErrorHandlerService.getRequestHandler());
@@ -55,7 +55,7 @@ async function bootstrap() {
         }
     }));
 
-    if(process.env.ENVIRONMENT !== 'LOCAL') {
+    if(process.env.ENVIRONMENT !== EnvType.LOCAL) {
         app.use(ddos.express);
     }
 

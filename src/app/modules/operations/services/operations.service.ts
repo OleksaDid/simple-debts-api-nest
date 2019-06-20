@@ -1,23 +1,24 @@
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {Id} from '../../../common/types/types';
-import {OperationsProvider} from '../operations.providers';
 import {Model, Types} from 'mongoose';
 import {OperationInterface} from '../models/operation.interface';
 import {DebtInterface} from '../../debts/models/debt.interface';
-import {DebtsProvider} from '../../debts/debts-providers.enum';
 import {DebtsStatus} from '../../debts/models/debts-status.enum';
 import {OperationDto} from '../models/operation.dto';
 import {HttpWithRequestException} from '../../../services/error-handler/http-with-request.exception';
 import {DebtsAccountType} from '../../debts/models/debts-account-type.enum';
 import {OperationStatus} from '../models/operation-status.enum';
+import {OperationsCollectionRef} from '../models/operation-collection-ref';
+import {DebtsCollectionRef} from '../../debts/models/debts-collection-ref';
 
-@Component()
+@Injectable()
 export class OperationsService {
 
 
   constructor(
-      @Inject(OperationsProvider.OperationsModelToken) private readonly Operation: Model<OperationInterface>,
-      @Inject(DebtsProvider.DebtsModelToken) private readonly Debts: Model<DebtInterface>,
+      @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>,
+      @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
   ) {}
 
 

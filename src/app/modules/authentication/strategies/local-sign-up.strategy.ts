@@ -1,22 +1,23 @@
 import * as passport from 'passport';
 import * as LocalStrategy from 'passport-local';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {UserInterface} from "../../users/models/user.interface";
-import {Model} from "mongoose";
+import {Model} from 'mongoose';
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";
 import {AuthStrategy} from "../strategies-list.enum";
 import {EMAIL_NAME_PATTERN, EMAIL_PATTERN, PASSWORD_LENGTH_RESTRICTIONS} from "../../../common/constants/constants";
 import {ImagesHelper} from "../../../common/classes/images-helper";
-import {UsersProvider} from '../../users/users-providers.enum';
+import {UserCollectionRef} from '../../users/models/user-collection-ref';
 
 
-@Component()
+@Injectable()
 export class LocalSignUpStrategy extends LocalStrategy {
     constructor(
         private readonly authService: AuthenticationService,
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
     ) {
         super(
             {
@@ -66,8 +67,8 @@ export class LocalSignUpStrategy extends LocalStrategy {
                     // save the user
                     return newUser.save();
                 })
-                .then(() => this.User.findOne({email}))
-                .then((user: UserInterface) => {
+                .then(() => this.User.findOne({email}).exec())
+                .then(user => {
                     const newUser: any = new this.User();
                     createdUser = user;
 

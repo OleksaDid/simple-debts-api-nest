@@ -8,13 +8,6 @@ import {LocalAuthentication} from '../../models/local-authentication';
 @Controller('login')
 export class LoginController {
 
-
-    constructor(
-    ) { }
-
-
-
-
     @ApiImplicitHeader({
         name: 'Authorization',
         description: 'Must contain \'Bearer *FB_TOKEN*\'',

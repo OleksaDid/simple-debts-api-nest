@@ -1,4 +1,5 @@
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {Id} from '../../../../common/types/types';
 import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
 import {DebtInterface} from '../../../debts/models/debt.interface';
@@ -7,15 +8,15 @@ import {UserInterface} from '../../models/user.interface';
 import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {IMAGES_FOLDER_FILE_PATTERN} from '../../../../common/constants/constants';
 import * as fs from 'fs';
-import {UsersProvider} from '../../users-providers.enum';
-import {DebtsProvider} from '../../../debts/debts-providers.enum';
+import {DebtsCollectionRef} from '../../../debts/models/debts-collection-ref';
+import {UserCollectionRef} from '../../models/user-collection-ref';
 
-@Component()
+@Injectable()
 export class UsersService {
 
     constructor(
-        @Inject(DebtsProvider.DebtsModelToken) private readonly Debts: Model<DebtInterface>,
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>,
+        @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
     ) {}
 
 

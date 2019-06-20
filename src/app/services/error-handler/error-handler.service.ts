@@ -1,13 +1,14 @@
 import * as Raven from 'raven';
-import { Request } from 'express';
+import {EnvType} from '../../modules/config/models/env-type.enum';
 
+// TODO: make an injectable
 export class ErrorHandler {
 
     private _raven;
     private static _instance: ErrorHandler;
 
     private ravenOptions = {
-        environment: process.env.ENVIRONMENT,
+        environment: process.env.NODE_ENV,
         release: process.env.SENTRY_RELEASE,
         parseUser: true,
         captureUnhandledRejections: true,
@@ -46,7 +47,7 @@ export class ErrorHandler {
             error = JSON.stringify(err);
         }
 
-        if(process.env.ENVIRONMENT !== 'LOCAL') {
+        if(process.env.NODE_ENV !== EnvType.LOCAL) {
             this._raven.captureException(error, {req});
         }
 

@@ -49,4 +49,4 @@ UserSchema.methods.generateIdenticon = (hashSubject) => {
     });
 };
 
-export default UserSchema;
+export {UserSchema};

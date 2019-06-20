@@ -1,27 +1,31 @@
 import * as passport from 'passport';
 import * as passportJWT from 'passport-jwt';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import {Component, HttpStatus, Inject} from '@nestjs/common';
-import {UserInterface} from "../../users/models/user.interface";
-import {Model} from "mongoose";
-import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";
-import {AuthStrategy} from "../strategies-list.enum";
+import {ExtractJwt, Strategy} from 'passport-jwt';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
+import {UserInterface} from '../../users/models/user.interface';
+import {Model} from 'mongoose';
+import {HttpWithRequestException} from '../../../services/error-handler/http-with-request.exception';
+import {AuthStrategy} from '../strategies-list.enum';
 import {JwtPayloadInterface} from '../models/jwt-payload';
 import {DateHelper} from '../../../common/classes/date-helper';
 import {AuthenticationService} from '../services/authentication/authentication.service';
-import {UsersProvider} from '../../users/users-providers.enum';
+import {UserCollectionRef} from '../../users/models/user-collection-ref';
+import {ConfigService} from '../../config/services/config.service';
+import {EnvField} from '../../config/models/env-field.enum';
 
 
-@Component()
+@Injectable()
 export class RefreshTokenStrategy extends passportJWT.Strategy {
     constructor(
         private readonly authService: AuthenticationService,
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>
+        private readonly _config: ConfigService,
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
     ) {
         super(
             {
                 jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
-                secretOrKey: process.env.REFRESH_JWT_SECRET,
+                secretOrKey: _config.get(EnvField.REFRESH_JWT_SECRET),
                 ignoreExpiration: true
             },
             async (jwt_payload: JwtPayloadInterface, done) => await this.verify(jwt_payload, done)

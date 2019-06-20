@@ -1,6 +1,4 @@
-import {HttpException} from "@nestjs/core";
-import {Request} from "express";
-import {HttpStatus} from "@nestjs/common";
+import {HttpException, HttpStatus} from '@nestjs/common';
 
 export class HttpWithRequestException extends HttpException {
     private _request: Request;
