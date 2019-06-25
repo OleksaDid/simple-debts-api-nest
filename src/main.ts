@@ -52,7 +52,7 @@ async function bootstrap() {
         }
     }));
 
-    if(process.env.ENVIRONMENT !== EnvType.LOCAL) {
+    if(process.env[EnvField.NODE_ENV] !== EnvType.LOCAL) {
         app.use(ddos.express);
     }
 
@@ -79,7 +79,7 @@ async function bootstrap() {
     SwaggerModule.setup('/api', app, document);
 
 
-    const port = +process.env.PORT || 10010;
+    const port = +process.env[EnvField.PORT] || 10010;
     await app.listen(port);
 }
 

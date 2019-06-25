@@ -26,12 +26,12 @@ export class DebtsMultipleController {
 
 
     @ApiResponse({
-        status: 201,
-        type: DebtResponseDto
+      status: 201,
+      type: DebtResponseDto
     })
     @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
+      status: 400,
+      description: 'Bad Request'
     })
     @UseGuards(AuthGuard())
     @Post()
@@ -51,15 +51,15 @@ export class DebtsMultipleController {
 
 
     @ApiResponse({
-        status: 201,
-        type: DebtResponseDto
+      status: 201,
+      type: DebtResponseDto
     })
     @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
+      status: 400,
+      description: 'Bad Request'
     })
     @UseGuards(AuthGuard())
-    @Post(':id/creation-accept')
+    @Post(':id/creation/accept')
     async acceptCreation(
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto
@@ -72,16 +72,16 @@ export class DebtsMultipleController {
 
 
     @ApiResponse({
-        status: 201,
-        type: DebtResponseDto,
-        isArray: true
+      status: 201,
+      type: DebtResponseDto,
+      isArray: true
     })
     @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
+      status: 400,
+      description: 'Bad Request'
     })
     @UseGuards(AuthGuard())
-    @Post(':id/creation-decline')
+    @Post(':id/creation/decline')
     async declineCreation(
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto

@@ -36,7 +36,6 @@ export class DebtDto {
     statusAcceptor: Id;
 
     @IsNumber()
-    @IsPositive()
     summary: number;
 
     @IsOptional()

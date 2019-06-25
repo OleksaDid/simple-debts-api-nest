@@ -1,40 +1,24 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import {ApplicationModule} from '../src/app/app.module';
-import {HttpWithExceptionFilter} from '../src/app/filters/http-exception.filter';
-import {ModelValidationPipe} from '../src/app/pipes/model-validation.pipe';
+import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
+import {AuthenticationHelper} from './helpers/authentication.helper';
+import {AppHelper} from './helpers/app.helper';
 
+const credentials = require('./fixtures/test-user');
+let user: AuthUser;
 
-const credentials = {
-  email: 'real_avatarr122@mail.ru',
-  password: 'a998877'
-};
-
-let token = '';
-let previousUserData;
+var Chance = require('chance');
+var chance = new Chance();
 
 
 describe('Users (e2e)', () => {
   let app;
 
   beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [ApplicationModule],
-    }).compile();
+    app = await AppHelper.getTestApp();
 
-    app = moduleFixture.createNestApplication();
-    await app
-      .useGlobalPipes(new ModelValidationPipe())
-      .useGlobalFilters(new HttpWithExceptionFilter())
-      .init();
+    const authHelper = new AuthenticationHelper(app);
 
-    await request(app.getHttpServer())
-      .post('/login/local')
-      .send(credentials)
-      .then(res => {
-        token = res.body.token;
-        previousUserData = res.body.user;
-      });
+    user = await authHelper.authenticateUser(credentials);
   });
 
 
@@ -65,7 +49,7 @@ describe('Users (e2e)', () => {
       ];
 
       queryParams.forEach(params => {
-        promises.push(request(app.getHttpServer()).get('/users').query(params).set('Authorization', 'Bearer ' + token));
+        promises.push(request(app.getHttpServer()).get('/users').query(params).set('Authorization', 'Bearer ' + user.token));
       });
 
       return Promise.all(promises)
@@ -77,12 +61,12 @@ describe('Users (e2e)', () => {
     });
 
     it('should return an array of users', () => {
-      const regex = 'real';
+      const regex = 'a';
 
       return request(app.getHttpServer())
         .get('/users')
         .query({ name:  regex})
-        .set('Authorization', 'Bearer ' + token)
+        .set('Authorization', 'Bearer ' + user.token)
         .expect(200)
         .then(res => {
           expect(Array.isArray(res.body)).toBeTruthy();
@@ -101,6 +85,7 @@ describe('Users (e2e)', () => {
 
 
   describe('POST /users', () => {
+    const updateData = {name: chance.name()};
 
     it('should return 401 error if token is invalid', () => {
       const promises = [];
@@ -127,7 +112,7 @@ describe('Users (e2e)', () => {
       ];
 
       params.forEach(params => {
-        promises.push(request(app.getHttpServer()).post('/users').send(params).set('Authorization', 'Bearer ' + token));
+        promises.push(request(app.getHttpServer()).post('/users').send(params).set('Authorization', 'Bearer ' + user.token));
       });
 
       return Promise.all(promises)
@@ -139,37 +124,35 @@ describe('Users (e2e)', () => {
     });
 
     it('should update username', () => {
-      const data = {name: 'Alex'};
 
       return request(app.getHttpServer())
         .post('/users')
-        .set('Authorization', 'Bearer ' + token)
-        .send(data)
+        .set('Authorization', 'Bearer ' + user.token)
+        .send(updateData)
         .expect(201)
         .then(response => {
-          expect(response.body).toHaveProperty('name', data.name);
+          expect(response.body).toHaveProperty('name', updateData.name);
 
-          expect(response.body).toHaveProperty('picture', previousUserData.picture);
-          expect(response.body).toHaveProperty('id', previousUserData.id);
+          expect(response.body).toHaveProperty('picture', user.user.picture);
+          expect(response.body).toHaveProperty('id', user.user.id);
         });
     });
 
     it('should update image', () => {
-      const data = {name: 'Alex'};
 
       return request(app.getHttpServer())
         .post('/users')
-        .set('Authorization', 'Bearer ' + token)
+        .set('Authorization', 'Bearer ' + user.token)
         .attach('image', __dirname + '/files/avatar.png')
-        .field('name', 'Alex')
+        .field('name', updateData.name)
         .expect(201)
         .then(response => {
-          expect(response.body).toHaveProperty('name', data.name);
+          expect(response.body).toHaveProperty('name', updateData.name);
 
           expect(response.body).toHaveProperty('picture');
-          expect(response.body.picture).not.toBe(previousUserData.picture);
+          expect(response.body.picture).not.toBe(user.user.picture);
 
-          expect(response.body).toHaveProperty('id', previousUserData.id);
+          expect(response.body).toHaveProperty('id', user.user.id);
         });
     });
   });

@@ -66,13 +66,20 @@ export class DebtsService {
   };
 
   async deleteDebt(userId: Id, debtsId: Id): Promise<void> {
-      const debt = await this.Debts
-          .findOne({_id: debtsId, users: {$in: [userId]}})
-          .populate({ path: 'users', select: 'name picture'});
+    let debt: DebtInterface;
+
+    try {
+      debt = await this.Debts
+        .findOne({_id: debtsId, users: {$in: [userId]}})
+        .populate({ path: 'users', select: 'name picture'});
 
       if(!debt) {
-          throw new HttpException('Debts not found', HttpStatus.BAD_REQUEST);
+        throw 'Debt not found';
       }
+    } catch(err) {
+      throw new HttpException('Debt not found', HttpStatus.BAD_REQUEST);
+    }
+
 
       if(debt.type === DebtsAccountType.SINGLE_USER) {
           return this.singleDebtsService.deleteSingleDebt(debt, userId);

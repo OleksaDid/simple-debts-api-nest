@@ -3,7 +3,7 @@ import {SendUserDto} from '../../users/models/user.dto';
 import {DebtsStatus} from './debts-status.enum';
 import {Id} from '../../../common/types/types';
 import {OperationResponseDto} from '../../operations/models/operation-response.dto';
-import {IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsPositive, IsString, Length} from 'class-validator';
+import {IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsString, Length} from 'class-validator';
 import {ApiModelProperty} from '@nestjs/swagger';
 
 export class DebtResponseDto {
@@ -59,7 +59,6 @@ export class DebtResponseDto {
         type: 'number'
     })
     @IsNumber()
-    @IsPositive()
     summary: number;
 
     @ApiModelProperty({

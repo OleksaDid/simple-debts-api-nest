@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@nestjs/testing": "^6.3.1",
+    "@shelf/jest-mongodb": "^1.0.1",
     "@types/async": "^2.4.2",
     "@types/bcrypt-nodejs": "0.0.30",
     "@types/body-parser": "^1.17.0",
@@ -74,6 +75,7 @@
     "@types/raven": "^2.5.3",
     "@types/request": "0.0.45",
     "@types/supertest": "^2.0.7",
+    "chance": "^1.0.18",
     "concurrently": "^4.1.0",
     "jest": "^23.6.0",
     "nodemon": "^1.18.9",
@@ -92,6 +94,7 @@
       "json",
       "ts"
     ],
+    "preset": "@shelf/jest-mongodb",
     "rootDir": "src",
     "testRegex": ".spec.ts$",
     "transform": {

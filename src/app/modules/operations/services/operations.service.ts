@@ -22,15 +22,24 @@ export class OperationsService {
 
 
   async createOperation(userId: Id, debtsId: Id, moneyAmount: number, moneyReceiver: Id, description: string): Promise<DebtInterface> {
-      let debt = await this.Debts
-          .findOne(
-              {
-                  _id: debtsId,
-                  users: {'$all': [userId, moneyReceiver]},
-                  $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
-              }
-          );
+    let debt: DebtInterface;
 
+    try {
+      debt = await this.Debts
+        .findOne(
+          {
+            _id: debtsId,
+            users: {'$all': [userId, moneyReceiver]},
+            $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
+          }
+        );
+
+      if(!debt) {
+        throw 'Debt wasn\'t found';
+      }
+    } catch(err) {
+      throw new HttpException('Debts wasn\'t found', HttpStatus.BAD_REQUEST);
+    }
 
       const statusAcceptor = debt.users.find(user => user.toString() != userId);
       const newOperation = new OperationDto(debtsId, moneyAmount, moneyReceiver, description, statusAcceptor, debt.type);

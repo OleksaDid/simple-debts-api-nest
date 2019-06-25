@@ -1,31 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import {ApplicationModule} from '../src/app/app.module';
-import {HttpWithExceptionFilter} from '../src/app/filters/http-exception.filter';
-import {ModelValidationPipe} from '../src/app/pipes/model-validation.pipe';
+import {AppHelper} from './helpers/app.helper';
 
+import * as dotenv from 'dotenv';
+import {EnvField} from '../src/app/modules/config/models/env-field.enum';
+dotenv.config({ path: __dirname + '/../config/test.env' });
 
-const credentials = {
-  email: 'real_avatarr1@mail.ru',
-  password: 'a998877'
-};
-
-const fbToken = 'EAAJV6d1AA6ABAJqPXun8ftdtVVzEhkZAFZAkl6LWgDFxHm5ocjoZBuZBo0CkrIoUCNZBsMkHLkejKXlSTvBR0nsZCeFmcotFN7lKkJXGNGbvPwtCju1MD3QHytk2Xytq4ZAOZC68s7eoFB3vtCFVOYZBzxZBQFTmBdsAO0QrkA7vI8HqZBKkyGze3md2NqjLGZBS54g8GA2Mk8qs0ZAdfZA0h4v6TZC87zH8fJPST9ZBnoS2O0IRFwZDZD';
+const credentials = require('./fixtures/auth-user');
 
 
 describe('Authorization (e2e)', () => {
   let app;
 
   beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [ApplicationModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app
-      .useGlobalPipes(new ModelValidationPipe())
-      .useGlobalFilters(new HttpWithExceptionFilter())
-      .init();
+    app = await AppHelper.getTestApp();
   });
 
 
@@ -204,7 +191,7 @@ describe('Authorization (e2e)', () => {
 
       return request(app.getHttpServer())
         .get('/login/facebook')
-        .set('Authorization', 'Bearer ' + fbToken)
+        .set('Authorization', 'Bearer ' + process.env[EnvField.FACEBOOK_TEST_USER_TOKEN])
         .expect(200)
         .then(resp => {
           checkIsResponseMatchesOnLoginModel(resp);

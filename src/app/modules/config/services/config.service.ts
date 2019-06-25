@@ -43,9 +43,11 @@ export class ConfigService implements MongooseOptionsFactory {
       [EnvField.MONGOLAB_URI]: Joi.string().required(),
       [EnvField.RAVEN_LINK]: Joi.string().required(),
       [EnvField.REFRESH_JWT_SECRET]: Joi.string().required(),
+      [EnvField.SENTRY_RELEASE]: Joi.string(),
       [EnvField.JWT_SECRET]: Joi.string().required(),
       [EnvField.FACEBOOK_ID]: Joi.string().required(),
-      [EnvField.FACEBOOK_SECRET]: Joi.string().required()
+      [EnvField.FACEBOOK_SECRET]: Joi.string().required(),
+      [EnvField.FACEBOOK_TEST_USER_TOKEN]: Joi.string().required()
     });
 
     const { error, value: validatedEnvConfig } = Joi.validate(

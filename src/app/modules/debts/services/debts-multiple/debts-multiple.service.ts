@@ -26,11 +26,15 @@ export class DebtsMultipleService {
 
 
     async createMultipleDebt(creatorId: Id, userId: Id, countryCode: string): Promise<DebtInterface> {
-        const userToCreateDebtWith = await this.User
-            .findById(userId)
-            .exec();
+        try {
+            const userToCreateDebtWith = await this.User
+              .findById(userId)
+              .exec();
 
-        if(!userToCreateDebtWith) {
+            if(!userToCreateDebtWith) {
+                throw 'User is not found';
+            }
+        } catch(err) {
             throw new HttpException('User is not found', HttpStatus.BAD_REQUEST);
         }
 
@@ -47,7 +51,7 @@ export class DebtsMultipleService {
 
         const errors = await validate(newDebtsPayload);
 
-        if(errors) {
+        if(errors && errors.length > 0) {
             throw new HttpException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
         }
 
@@ -61,12 +65,11 @@ export class DebtsMultipleService {
 
         const errors = await validate(virtualUserPayload);
 
-        if(errors) {
+        if(errors && errors.length > 0) {
             throw new HttpException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
         }
 
-        const createdVirtualUser = await this.User.create([virtualUserPayload])[0];
-
+        const createdVirtualUser = await this.User.create(virtualUserPayload);
 
         const updatedDebt = await this.Debts
             .findByIdAndUpdate(debt.id, {
