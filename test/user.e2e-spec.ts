@@ -6,17 +6,18 @@ import {AppHelper} from './helpers/app.helper';
 const credentials = require('./fixtures/test-user');
 let user: AuthUser;
 
-var Chance = require('chance');
-var chance = new Chance();
+const Chance = require('chance');
+const chance = new Chance();
 
 
 describe('Users (e2e)', () => {
   let app;
+  let authHelper: AuthenticationHelper;
 
   beforeEach(async () => {
     app = await AppHelper.getTestApp();
 
-    const authHelper = new AuthenticationHelper(app);
+    authHelper = new AuthenticationHelper(app);
 
     user = await authHelper.authenticateUser(credentials);
   });
@@ -25,17 +26,9 @@ describe('Users (e2e)', () => {
   describe('GET /users', () => {
 
     it('should return 401 error if token is invalid', () => {
-      const promises = [];
-
-      promises.push(request(app.getHttpServer()).get('/users').query({ val: 'ol' }));
-      promises.push(request(app.getHttpServer()).get('/users').query({ val: 'ol' }).set('Authorization', 'Bearer '));
-      promises.push(request(app.getHttpServer()).get('/users').query({ val: 'ol' }).set('Authorization', 'Bearer KJHFxjfhgIY6r756DRTg86F&%rctjyUG&*6f5rC'));
-
-      return Promise.all(promises).then(responses => {
-        responses.forEach(resp => {
-          expect(resp.statusCode).toBe(401);
-        });
-      });
+      return authHelper.testAuthorizationGuard(
+        request(app.getHttpServer()).get('/users').query({ val: 'ol' })
+      );
     });
 
     it('should return an error if there is no query param', () => {
@@ -88,17 +81,9 @@ describe('Users (e2e)', () => {
     const updateData = {name: chance.name()};
 
     it('should return 401 error if token is invalid', () => {
-      const promises = [];
-
-      promises.push(request(app.getHttpServer()).post('/users').send({name: 'Alex'}));
-      promises.push(request(app.getHttpServer()).post('/users').send({name: 'Alex'}).set('Authorization', 'Bearer '));
-      promises.push(request(app.getHttpServer()).post('/users').send({name: 'Alex'}).set('Authorization', 'Bearer KJHFxjfhgIY6r756DRTg86F&%rctjyUG&*6f5rC'));
-
-      return Promise.all(promises).then(responses => {
-        responses.forEach(resp => {
-          expect(resp.statusCode).toBe(401);
-        });
-      });
+      return authHelper.testAuthorizationGuard(
+        request(app.getHttpServer()).post('/users').send({name: 'Alex'})
+      );
     });
 
     it('should return an error if there is no name param', () => {

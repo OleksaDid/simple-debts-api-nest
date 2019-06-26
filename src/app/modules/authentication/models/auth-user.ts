@@ -1,11 +1,13 @@
 import {SendUserDto} from "../../users/models/user.dto";
 import {ApiModelProperty} from '@nestjs/swagger';
+import {Type} from 'class-transformer';
 
 export class AuthUser {
     @ApiModelProperty({
         description: 'your user data',
         type: SendUserDto
     })
+    @Type(() => SendUserDto)
     user: SendUserDto;
 
     @ApiModelProperty({

@@ -22,7 +22,7 @@ export class DbHelper {
 
     this._Debts = this._db.collection('debts');
     this._Users = this._db.collection('users');
-    this._Operations = this._db.collection('moneyOperations');
+    this._Operations = this._db.collection('moneyoperations');
   }
 
 

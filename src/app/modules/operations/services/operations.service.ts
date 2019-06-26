@@ -66,37 +66,45 @@ export class OperationsService {
   };
 
   async deleteOperation(userId: Id, operationId: Id): Promise<DebtInterface> {
+    let updatedDebt;
 
-      const updatedDebt = await this.Debts
-          .findOneAndUpdate(
-              {
-                  users: {'$in': [userId]},
-                  moneyOperations: {'$in': [operationId]},
-                  type: DebtsAccountType.SINGLE_USER,
-                  $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
-              },
-              {$pull: {moneyOperations: operationId}}
-          )
-          .populate({
-              path: 'moneyOperations',
-              select: 'moneyAmount moneyReceiver',
-          });
+    try {
+      updatedDebt = await this.Debts
+        .findOneAndUpdate(
+          {
+            users: {'$in': [userId]},
+            moneyOperations: {'$in': [operationId]},
+            type: DebtsAccountType.SINGLE_USER,
+            $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
+          },
+          {$pull: {moneyOperations: operationId}}
+        )
+        .populate({
+          path: 'moneyOperations',
+          select: 'moneyAmount moneyReceiver',
+        });
 
-
-      const deletedOperation = await this.Operation.findByIdAndRemove(operationId);
-
-      if(!deletedOperation) {
-          throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
+      if(!updatedDebt) {
+        throw 'Debt wasn\'t found';
       }
+    } catch(err) {
+      throw new HttpException('Debt wasn\'t found', HttpStatus.BAD_REQUEST);
+    }
+
+    const deletedOperation = await this.Operation.findByIdAndRemove(operationId);
+
+    if(!deletedOperation) {
+        throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
+    }
 
 
-      const operation = updatedDebt.moneyOperations.find(op => op.id.toString() === operationId);
-      const moneyAmount = operation.moneyAmount;
-      const moneyReceiver = updatedDebt.users.find(user => user.toString() !== operation.moneyReceiver);
+    const operation = updatedDebt.moneyOperations.find(op => op.id.toString() === operationId);
+    const moneyAmount = operation.moneyAmount;
+    const moneyReceiver = updatedDebt.users.find(user => user.toString() !== operation.moneyReceiver);
 
-      await this.calculateDebtsSummary(updatedDebt, moneyReceiver, moneyAmount).save();
+    await this.calculateDebtsSummary(updatedDebt, moneyReceiver, moneyAmount).save();
 
-      return updatedDebt;
+    return updatedDebt;
   };
 
   async acceptOperation(userId: Id, operationId: Id): Promise<DebtInterface> {

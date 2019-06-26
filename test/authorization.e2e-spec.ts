@@ -1,8 +1,11 @@
 import * as request from 'supertest';
 import {AppHelper} from './helpers/app.helper';
+import {EnvField} from '../src/app/modules/config/models/env-field.enum';
+import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
+import {validate} from 'class-validator';
+import {plainToClass} from 'class-transformer';
 
 import * as dotenv from 'dotenv';
-import {EnvField} from '../src/app/modules/config/models/env-field.enum';
 dotenv.config({ path: __dirname + '/../config/test.env' });
 
 const credentials = require('./fixtures/auth-user');
@@ -25,9 +28,7 @@ describe('Authorization (e2e)', () => {
         .post('/sign_up/local')
         .send(newCredentials)
         .expect(201)
-        .then(response => {
-          checkIsResponseMatchesOnLoginModel(response, newCredentials);
-        });
+        .then(({body}) => checkIsResponseMatchesOnLoginModel(body, newCredentials));
     });
 
     it('should throw an error if user already exists', () => {
@@ -109,9 +110,7 @@ describe('Authorization (e2e)', () => {
         .post('/login/local')
         .send(credentials)
         .expect(201)
-        .then(response => {
-          checkIsResponseMatchesOnLoginModel(response, credentials);
-        });
+        .then(({body}) => checkIsResponseMatchesOnLoginModel(body, credentials));
     });
 
     it('should return an error if there is no user with such email', () => {
@@ -193,9 +192,7 @@ describe('Authorization (e2e)', () => {
         .get('/login/facebook')
         .set('Authorization', 'Bearer ' + process.env[EnvField.FACEBOOK_TEST_USER_TOKEN])
         .expect(200)
-        .then(resp => {
-          checkIsResponseMatchesOnLoginModel(resp);
-        });
+        .then(({body}) => checkIsResponseMatchesOnLoginModel(body));
     });
   });
 
@@ -242,34 +239,21 @@ describe('Authorization (e2e)', () => {
     });
   }
 
-  function checkIsResponseMatchesOnLoginModel(response, credentials?): void {
+  async function checkIsResponseMatchesOnLoginModel(user: AuthUser, credentials?: {email: string, password: string}): Promise<void> {
+    const errors = await validate(plainToClass(AuthUser, user));
+    expect(errors).toHaveLength(0);
+
     const emailName = /^.*(?=@)/;
-
-    expect(response.body).toHaveProperty('user');
-    expect(response.body.user).toHaveProperty('id');
-    expect(response.body.user.id).toBeTruthy();
-
-    expect(response.body.user).toHaveProperty('name');
-
     let picUrlRegex;
 
     if(credentials) {
-      expect(response.body.user.name).toBe(credentials.email.match(emailName)[0]);
+      expect(user.user.name).toBe(credentials.email.match(emailName)[0]);
       picUrlRegex = /http:\/\/(localhost|127\.0\.0\.1):\d{5}(\/images\/.*\.png)/;
     } else {
       picUrlRegex = /https:\/\/graph\.facebook\.com\/.*\/picture\?type=large/;
     }
 
-    expect(response.body.user.picture).toMatch(picUrlRegex);
-
-    expect(response.body.user).toHaveProperty('picture');
-
-    expect(typeof response.body.user.picture).toBe('string');
-
-
-    expect(response.body).toHaveProperty('token');
-    expect(response.body.token).toBeTruthy();
-    expect(typeof response.body.token).toBe('string');
+    expect(user.user.picture).toMatch(picUrlRegex);
   }
 });
 
