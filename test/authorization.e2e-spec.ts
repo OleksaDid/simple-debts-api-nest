@@ -1,21 +1,20 @@
 import * as request from 'supertest';
 import {AppHelper} from './helpers/app.helper';
-import {EnvField} from '../src/app/modules/config/models/env-field.enum';
 import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {validate} from 'class-validator';
 import {plainToClass} from 'class-transformer';
-
-import * as dotenv from 'dotenv';
-dotenv.config({ path: __dirname + '/../config/test.env' });
+import {AuthenticationHelper} from './helpers/authentication.helper';
 
 const credentials = require('./fixtures/auth-user');
 
 
 describe('Authorization (e2e)', () => {
   let app;
+  let authHelper: AuthenticationHelper;
 
   beforeEach(async () => {
     app = await AppHelper.getTestApp();
+    authHelper = new AuthenticationHelper(app);
   });
 
 
@@ -186,11 +185,12 @@ describe('Authorization (e2e)', () => {
       });
     });
 
-    it('should return 200 & OnLogin if user uses correct token', () => {
+    it('should return 200 & OnLogin if user uses correct token', async () => {
+      const testUserToken = await authHelper.getFacebookTestUserToken();
 
       return request(app.getHttpServer())
         .get('/login/facebook')
-        .set('Authorization', 'Bearer ' + process.env[EnvField.FACEBOOK_TEST_USER_TOKEN])
+        .set('Authorization', `Bearer ${testUserToken}`)
         .expect(200)
         .then(({body}) => checkIsResponseMatchesOnLoginModel(body));
     });

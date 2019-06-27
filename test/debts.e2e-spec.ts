@@ -67,9 +67,9 @@ describe('Debts (e2e)', () => {
       .catch(err => Logger.error(err));
   }, 10000);
 
-  afterAll(async () => {
-    await Debts.drop();
-    await Operations.drop();
+  afterAll(() => {
+    Debts.drop();
+    Operations.drop();
   });
   
   

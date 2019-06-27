@@ -99,7 +99,7 @@ describe('Operations (e2e)', () => {
     };
   });
 
-  afterAll(async () => {
+  afterAll(() => {
     Debts.drop();
     Operations.drop();
   });

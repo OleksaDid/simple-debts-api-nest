@@ -55,7 +55,7 @@ export class ConfigService implements MongooseOptionsFactory {
       [EnvField.JWT_SECRET]: Joi.string().required(),
       [EnvField.FACEBOOK_ID]: Joi.string().required(),
       [EnvField.FACEBOOK_SECRET]: Joi.string().required(),
-      [EnvField.FACEBOOK_TEST_USER_TOKEN]: Joi.string().required(),
+      [EnvField.FACEBOOK_APP_TOKEN]: Joi.string().required(),
       [EnvField.FIREBASE_FILE]: Joi.string().required(),
       [EnvField.FIREBASE_URL]: Joi.string().required(),
       [EnvField.FIREBASE_BUCKET]: Joi.string().required()
