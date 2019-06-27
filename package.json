@@ -38,6 +38,7 @@
     "dotenv": "^2.0.0",
     "errorhandler": "^1.5.1",
     "express-validator": "^3.2.1",
+    "firebase-admin": "^8.2.0",
     "helmet": "^3.18.0",
     "identicon.js": "^2.3.3",
     "joi": "^14.3.1",

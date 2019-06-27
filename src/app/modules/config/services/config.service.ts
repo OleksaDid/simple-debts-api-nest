@@ -4,14 +4,18 @@ import * as fs from 'fs';
 import {EnvConfig} from '../models/env-config.interface';
 import {EnvType} from '../models/env-type.enum';
 import {EnvField} from '../models/env-field.enum';
-import {MongooseOptionsFactory, MongooseModuleOptions} from '@nestjs/mongoose';
+import {MongooseModuleOptions, MongooseOptionsFactory} from '@nestjs/mongoose';
 
 export class ConfigService implements MongooseOptionsFactory {
 
   private readonly _envConfig: EnvConfig;
+  private readonly _configDirectoryPath: string;
 
-  constructor(filePath: string) {
-    const config = dotenv.parse(fs.readFileSync(filePath));
+  constructor(configDirectoryPath: string) {
+    this._configDirectoryPath = configDirectoryPath;
+
+    const configFilePath = `${this.configDirectoryPath}/${process.env[EnvField.NODE_ENV]}.env`;
+    const config = dotenv.parse(fs.readFileSync(configFilePath));
     this._envConfig = this._validateInput(config);
   }
 
@@ -19,6 +23,10 @@ export class ConfigService implements MongooseOptionsFactory {
 
   get(field: EnvField): string {
     return this._envConfig[field];
+  }
+
+  get configDirectoryPath(): string {
+    return this._configDirectoryPath;
   }
 
   createMongooseOptions(): Promise<MongooseModuleOptions> | MongooseModuleOptions {
@@ -47,7 +55,10 @@ export class ConfigService implements MongooseOptionsFactory {
       [EnvField.JWT_SECRET]: Joi.string().required(),
       [EnvField.FACEBOOK_ID]: Joi.string().required(),
       [EnvField.FACEBOOK_SECRET]: Joi.string().required(),
-      [EnvField.FACEBOOK_TEST_USER_TOKEN]: Joi.string().required()
+      [EnvField.FACEBOOK_TEST_USER_TOKEN]: Joi.string().required(),
+      [EnvField.FIREBASE_FILE]: Joi.string().required(),
+      [EnvField.FIREBASE_URL]: Joi.string().required(),
+      [EnvField.FIREBASE_BUCKET]: Joi.string().required()
     });
 
     const { error, value: validatedEnvConfig } = Joi.validate(

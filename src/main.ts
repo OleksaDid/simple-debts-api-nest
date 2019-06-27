@@ -26,61 +26,65 @@ const ddos = new Ddos;
 const ErrorHandlerService = new ErrorHandler();
 
 async function bootstrap() {
-    const app = await NestFactory.create(ApplicationModule);
+  const app = await NestFactory.create(ApplicationModule);
 
-    // Request handler (setup to interceptors?)
-    app.use(ErrorHandlerService.getRequestHandler());
+  app.enableCors();
 
-
-    // General
-    app.use(compression());
-
-    app.use(bodyParser.json());
-    app.use(bodyParser.urlencoded({ extended: true }));
-
-    app.use(expressValidator());
-
-    app.use(express.static('public', { maxAge: 31557600000 }));
+  // Request handler (setup to interceptors?)
+  app.use(ErrorHandlerService.getRequestHandler());
 
 
-    // Security
-    app.use(helmet());
+  // General
+  app.use(compression());
 
-    app.use(helmet.contentSecurityPolicy({
-        directives: {
-            defaultSrc: ["'self'"]
-        }
-    }));
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
 
-    if(process.env[EnvField.NODE_ENV] !== EnvType.LOCAL) {
-        app.use(ddos.express);
-    }
+  app.use(expressValidator());
+
+  app.use(express.static('public', { maxAge: 31557600000 }));
 
 
-    // Global pipes
-    app.useGlobalPipes(new ModelValidationPipe());
+  // Security
+  app.use(helmet());
+
+  app.use(helmet.contentSecurityPolicy({
+      directives: {
+          defaultSrc: ["'self'"]
+      }
+  }));
+
+  if(process.env[EnvField.NODE_ENV] !== EnvType.LOCAL) {
+      app.use(ddos.express);
+  }
 
 
-    // Error handling
-    app.use(ErrorHandlerService.getErrorHandler());
+  // Global pipes
+  app.useGlobalPipes(new ModelValidationPipe());
 
-    app.useGlobalFilters(new HttpWithExceptionFilter());
 
-    // Swagger
+  // Error handling
+  app.use(ErrorHandlerService.getErrorHandler());
+
+  app.useGlobalFilters(new HttpWithExceptionFilter());
+
+  // Swagger
+  if(process.env[EnvField.NODE_ENV] !== EnvType.PROD) {
     const options = new DocumentBuilder()
-        .setTitle('Simple Debts')
-        .setDescription('Simple Debts API powered by Nest')
-        .setVersion('1.0')
-        .addBearerAuth('Authorization', 'header')
-        .setSchemes('http')
-        .setSchemes('https')
-        .build();
+      .setTitle('Simple Debts')
+      .setDescription('Simple Debts API powered by Nest')
+      .setVersion('1.0')
+      .addBearerAuth('Authorization', 'header')
+      .setSchemes('http')
+      .setSchemes('https')
+      .build();
     const document = SwaggerModule.createDocument(app, options);
     SwaggerModule.setup('/api', app, document);
+  }
 
 
-    const port = +process.env[EnvField.PORT] || 10010;
-    await app.listen(port);
+  const port = +process.env[EnvField.PORT] || 10010;
+  await app.listen(port);
 }
 
 bootstrap();
