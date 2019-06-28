@@ -16,9 +16,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand --forceExit",
+    "test:e2e": "NODE_ENV=local jest --config ./test/jest-e2e.json --runInBand --forceExit",
+    "test:e2e-dev": "NODE_ENV=dev jest --config ./test/jest-e2e.json --runInBand --forceExit",
     "docker:dev": "docker build -t gcr.io/simple-debts-api-dev/image1 .",
-    "docker:prod": "docker build -t gcr.io/simple-debts-api/image1 --build-arg NODE_ENV=prod ."
+    "docker:prod": "docker build -t gcr.io/simple-debts-api/image1 --build-arg NODE_ENV=prod .",
+    "deploy:dev": "npm run test:e2e && cloud-build-local --substitutions _NODE_ENV=dev,_PROJECT_ID=simple-debts-api-dev --dryrun=false --push .",
+    "deploy:prod": "npm run test:e2e-dev && cloud-build-local --substitutions _NODE_ENV=prod,_PROJECT_ID=simple-debts-api --dryrun=false --push ."
   },
   "dependencies": {
     "@nestjs/common": "^6.3.1",
