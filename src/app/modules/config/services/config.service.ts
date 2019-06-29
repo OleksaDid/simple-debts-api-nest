@@ -92,7 +92,7 @@ export class ConfigService implements MongooseOptionsFactory, MulterOptionsFacto
       [EnvField.PORT]: Joi.number().default(10010),
       [EnvField.MONGODB_URI]: Joi.string().required(),
       [EnvField.MONGOLAB_URI]: Joi.string().required(),
-      [EnvField.RAVEN_LINK]: Joi.string().required(),
+      [EnvField.SENTRY_LINK]: Joi.string().required(),
       [EnvField.REFRESH_JWT_SECRET]: Joi.string().required(),
       [EnvField.SENTRY_RELEASE]: Joi.string(),
       [EnvField.JWT_SECRET]: Joi.string().required(),

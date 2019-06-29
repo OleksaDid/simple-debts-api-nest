@@ -1,5 +1,5 @@
 import {ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus} from '@nestjs/common';
-import {Response} from "express";
+import {Response, Request} from "express";
 import {ErrorHandler} from "../services/error-handler/error-handler.service";
 import {ResponseError} from "../common/classes/response-error";
 
@@ -15,6 +15,8 @@ export class HttpWithExceptionFilter implements ExceptionFilter {
 
 
     if(!(exception instanceof HttpException)) {
+      this.ErrorHandler.captureError(exception, request);
+
       response
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json(new ResponseError(exception));
