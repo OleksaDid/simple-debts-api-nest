@@ -15,5 +15,4 @@ export interface UserInterface extends Document {
 
     generateHash: (password: string) => string;
     validPassword: (password: string) => boolean;
-    generateIdenticon: (hashSubject: string) => Promise<string>;
 }

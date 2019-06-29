@@ -8,15 +8,17 @@ import {Model} from 'mongoose';
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {AuthStrategy} from "../strategies-list.enum";
 import {EMAIL_NAME_PATTERN, EMAIL_PATTERN, PASSWORD_LENGTH_RESTRICTIONS} from "../../../common/constants/constants";
-import {ImagesHelper} from "../../../common/classes/images-helper";
 import {UserCollectionRef} from '../../users/models/user-collection-ref';
 import {AuthUser} from '../models/auth-user';
+import {Request} from 'express';
+import {UsersService} from '../../users/services/users/users.service';
 
 
 @Injectable()
 export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStrategy.LOCAL_SIGN_UP_STRATEGY) {
     constructor(
         private readonly authService: AuthenticationService,
+        private _userService: UsersService,
         @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
     ) {
         super({
@@ -26,7 +28,7 @@ export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStr
         });
     }
 
-    async validate(req, email, password): Promise<AuthUser>  {
+    async validate(req: Request, email, password): Promise<AuthUser>  {
       let createdUser;
 
       const user = await this.User.findOne({ 'email' :  email });
@@ -60,10 +62,7 @@ export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStr
 
       createdUser = await this.User.findOne({email}).exec();
 
-      const emptyUser = new this.User();
-
-      const image = await emptyUser.generateIdenticon(createdUser.id);
-      createdUser.picture = ImagesHelper.getImagesPath(req) + image;
+      createdUser.picture = await this._userService.generateUserIdenticon(createdUser.id, req.hostname);
       createdUser.name = email.match(EMAIL_NAME_PATTERN)[0];
 
       await createdUser.save();

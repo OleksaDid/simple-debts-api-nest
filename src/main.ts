@@ -8,7 +8,6 @@ if(!process.env[EnvField.NODE_ENV]) {
     dotenv.config({ path: __dirname + '/../config/local.env' });
 }
 
-import * as express from 'express';
 import * as compression from 'compression';
 import * as bodyParser from 'body-parser';
 import * as expressValidator from 'express-validator';
@@ -41,8 +40,6 @@ async function bootstrap() {
   app.use(bodyParser.urlencoded({ extended: true }));
 
   app.use(expressValidator());
-
-  app.use(express.static('public', { maxAge: 31557600000 }));
 
 
   // Security

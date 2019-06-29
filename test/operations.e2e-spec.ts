@@ -206,9 +206,6 @@ describe('Operations (e2e)', () => {
 
       const operations = await Operations.find().toArray();
 
-      Logger.log(op);
-      Logger.log(operations);
-
       expect(operations).toBeTruthy();
       expect(Array.isArray(operations)).toBeTruthy();
       expect(operations.length).toBe(1);

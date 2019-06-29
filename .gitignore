@@ -141,6 +141,7 @@ bin/
 
 # public folder
 public/
+images/
 
 # config
 /config

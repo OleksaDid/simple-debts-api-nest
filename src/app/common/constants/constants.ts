@@ -2,7 +2,7 @@ const EMAIL_PATTERN = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".
 const EMAIL_NAME_PATTERN = /^.*(?=@)/;
 
 const IMAGES_FOLDER_FILE_PATTERN = /\/images\/.*/;
-const IMAGES_FOLDER_DIR = 'public/images';
+const IMAGES_FOLDER_DIR = 'images';
 
 const ACCESS_TOKEN_EXP_SECONDS = 60 * 60;
 const REFRESH_TOKEN_EXP_SECONDS = 60 * 60 * 24 * 30;

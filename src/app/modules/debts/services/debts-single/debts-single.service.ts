@@ -22,12 +22,12 @@ export class DebtsSingleService {
     @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
     @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
     @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>,
-    private readonly usersService: UsersService
+    private _usersService: UsersService
   ) {}
 
 
 
-  async createSingleDebt(creatorId: Id, userName: string, countryCode: string, imagesPath: string): Promise<DebtInterface> {
+  async createSingleDebt(creatorId: Id, userName: string, countryCode: string, host: string): Promise<DebtInterface> {
     const virtUser = new CreateVirtualUserDto(userName);
 
     const errors = await validate(virtUser);
@@ -49,9 +49,7 @@ export class DebtsSingleService {
     }
 
     const user = await this.User.create(virtUser);
-    const userPicture = await new this.User().generateIdenticon(user.id);
-
-    user.picture = imagesPath + userPicture;
+    user.picture = await this._usersService.generateUserIdenticon(user.id, host);
     await user.save();
 
     return this.Debts.create(new DebtDto(creatorId, user._id, DebtsAccountType.SINGLE_USER, countryCode))
@@ -62,7 +60,7 @@ export class DebtsSingleService {
 
     await debt.remove();
 
-    await this.usersService.deleteUser(virtualUserId);
+    await this._usersService.deleteUser(virtualUserId);
   }
 
   async acceptUserDeletedStatus(userId: Id, debtsId: Id): Promise<DebtInterface> {
@@ -182,7 +180,7 @@ export class DebtsSingleService {
     });
 
     promises.push(
-      this.usersService.deleteUser(virtualUserId)
+      this._usersService.deleteUser(virtualUserId)
     );
 
     promises.push(

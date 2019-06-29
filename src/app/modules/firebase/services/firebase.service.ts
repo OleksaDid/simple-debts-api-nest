@@ -1,7 +1,10 @@
-import {Injectable} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {ConfigService} from '../../config/services/config.service';
 import {EnvField} from '../../config/models/env-field.enum';
 import {storage} from 'firebase-admin';
+import * as fs from "fs";
+
+let instance = null;
 
 @Injectable()
 export class FirebaseService {
@@ -10,7 +13,14 @@ export class FirebaseService {
 
   constructor(
     private _configService: ConfigService
-  ) {}
+  ) {
+    if(!instance){
+      instance = this;
+      this.initFirebase();
+    }
+
+    return instance;
+  }
 
 
   get storage(): storage.Storage {
@@ -30,6 +40,33 @@ export class FirebaseService {
     });
 
     this._fileStorage = firebase.storage();
+  }
+
+  async uploadFile(filePath: string, fileName: string, destination: string, host: string): Promise<string> {
+    const [newFile] = await this.storage.bucket().upload(filePath, {
+      destination
+    });
+    await newFile.makePublic();
+    fs.unlinkSync(filePath);
+    return `${host}/static/${destination}`;
+  }
+
+  async getStaticFile(fileName: string): Promise<Buffer> {
+    const file = this.storage.bucket().file(fileName);
+
+    const [exists] = await file.exists();
+    if(!exists) {
+      throw new HttpException('This file doesn\'t exist', HttpStatus.NOT_FOUND);
+    }
+
+    const [buffer] = await file.download();
+
+    return buffer;
+  }
+
+  async deleteFile(fileName: string): Promise<void> {
+    const file = this.storage.bucket().file(fileName);
+    await file.delete();
   }
 
 }
