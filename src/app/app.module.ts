@@ -9,16 +9,16 @@ import {ConfigService} from './modules/config/services/config.service';
 import {MongooseModule} from '@nestjs/mongoose';
 
 @Module({
-    imports: [
-      ConfigModule,
-        AuthenticationModule,
-        UsersModule,
-        DebtsModule,
-        OperationsModule,
-        HealthModule,
-        MongooseModule.forRootAsync({
-          useExisting: ConfigService
-        })
-    ]
+  imports: [
+    ConfigModule,
+    AuthenticationModule,
+    UsersModule,
+    DebtsModule,
+    OperationsModule,
+    HealthModule,
+    MongooseModule.forRootAsync({
+      useExisting: ConfigService
+    }),
+  ]
 })
 export class ApplicationModule {}

@@ -78,14 +78,14 @@ describe('Debts (e2e)', () => {
 
     it('should return 401 error if token is invalid', () => {
       return authHelper.testAuthorizationGuard(
-        request(app.getHttpServer()).post('/debts/multiple').send({userId: user2.user.id, countryCode: 'UA'})
+        request(app.getHttpServer()).post('/debts/multiple').send({userId: user2.user.id, currency: 'UA'})
       );
     });
 
     it('should throw an error if you try to create debts w/ yourself', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user1.user.id, countryCode: 'UA'})
+        .send({userId: user1.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
@@ -101,7 +101,7 @@ describe('Debts (e2e)', () => {
         promises.push(
           request(app.getHttpServer())
             .post('/debts/multiple')
-            .send({userId: user, countryCode: 'UA'})
+            .send({userId: user, currency: 'UA'})
             .set('Authorization', 'Bearer ' + user1.token)
         );
       });
@@ -122,7 +122,7 @@ describe('Debts (e2e)', () => {
         promises.push(
           request(app.getHttpServer())
             .post('/debts/multiple')
-            .send({userId: user2.user.id, countryCode: code})
+            .send({userId: user2.user.id, currency: code})
             .set('Authorization', 'Bearer ' + user1.token)
         );
       });
@@ -138,7 +138,7 @@ describe('Debts (e2e)', () => {
     it('should return new created Debts object', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, countryCode: 'UA'})
+        .send({userId: user2.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
         .then(debt => {
@@ -161,7 +161,7 @@ describe('Debts (e2e)', () => {
     it('should throw an error if debts between these users already exists', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, countryCode: 'UA'})
+        .send({userId: user2.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
@@ -176,7 +176,7 @@ describe('Debts (e2e)', () => {
 
     it('should return 401 error if token is invalid', () => {
       return authHelper.testAuthorizationGuard(
-        request(app.getHttpServer()).post('/debts/single').send({userName: 'Valera', countryCode: 'UA'})
+        request(app.getHttpServer()).post('/debts/single').send({userName: 'Valera', currency: 'UA'})
       );
     });
 
@@ -188,7 +188,7 @@ describe('Debts (e2e)', () => {
         promises.push(
           request(app.getHttpServer())
             .post('/debts/single')
-            .send({userName: 'Valera', countryCode: code})
+            .send({userName: 'Valera', currency: code})
             .set('Authorization', 'Bearer ' + user1.token)
         );
       });
@@ -204,7 +204,7 @@ describe('Debts (e2e)', () => {
     it('should throw an error if you try to create debts w/ invalid username', () => {
       return request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: '', countryCode: 'UA'})
+        .send({userName: '', currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
@@ -215,7 +215,7 @@ describe('Debts (e2e)', () => {
     it('should create new user & return new created Debts object', async () => {
       const debt = await request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera', countryCode: 'UA'})
+        .send({userName: 'Valera', currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201);
 
@@ -250,7 +250,7 @@ describe('Debts (e2e)', () => {
     it('should throw an error if there is already virtual user w/ such name', () => {
       return request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera', countryCode: 'UA'})
+        .send({userName: 'Valera', currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
@@ -550,7 +550,7 @@ describe('Debts (e2e)', () => {
 
       const {body} = await request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, countryCode: 'UA'})
+        .send({userId: user2.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token);
 
       multipleDebt = body;
@@ -638,7 +638,7 @@ describe('Debts (e2e)', () => {
     it('can be deleted by user who\'s created Debts', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, countryCode: 'UA'})
+        .send({userId: user2.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
         .then(resp => multipleDebt = resp.body)
@@ -676,7 +676,7 @@ describe('Debts (e2e)', () => {
 
       const {body} = await request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, countryCode: 'UA'})
+        .send({userId: user2.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201);
 
@@ -819,7 +819,7 @@ describe('Debts (e2e)', () => {
     beforeAll(async () => {
       const {body} = await request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, countryCode: 'UA'})
+        .send({userId: user2.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token);
 
       multipleDebt = body;
@@ -921,7 +921,7 @@ describe('Debts (e2e)', () => {
 
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, countryCode: 'UA'})
+        .send({userId: user2.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .then(resp => multipleDebt = resp.body)
         .then(() => {
@@ -974,7 +974,7 @@ describe('Debts (e2e)', () => {
     beforeAll(async () => {
       return request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera new', countryCode: 'UA'})
+        .send({userName: 'Valera new', currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .then(({body: debt}) => {
           connectUserDebt = debt;
@@ -1084,7 +1084,7 @@ describe('Debts (e2e)', () => {
     it('should send an error if you try to connect user with whom you already have a debt', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, countryCode: 'UA'})
+        .send({userId: user2.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
         .then(() => {
@@ -1115,7 +1115,7 @@ describe('Debts (e2e)', () => {
     it('should send an error if you try to connect user to debt that is already waiting for connection', () => {
       return request(app.getHttpServer())
         .post('/debts/single/' + connectUserDebt.id + '/connect_user')
-        .send({userId: user3.user.id, countryCode: 'UA'})
+        .send({userId: user3.user.id, currency: 'UA'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(debt => {
@@ -1376,7 +1376,7 @@ describe('Debts (e2e)', () => {
     async function createConnectUserDebt(): Promise<DebtInterface> {
       const {body: debt} = await request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera new', countryCode: 'UA'})
+        .send({userName: 'Valera new', currency: 'UA'})
         .set('Authorization', `Bearer ${user2.token}`)
         .expect(201);
 

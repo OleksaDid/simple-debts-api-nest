@@ -43,7 +43,7 @@ export class DebtsMultipleController {
             throw new HttpException('You cannot create Debts with yourself', HttpStatus.BAD_REQUEST);
         }
 
-        const newDebt = await this.debtsMultipleService.createMultipleDebt(user.id, createDebtDto.userId, createDebtDto.countryCode);
+        const newDebt = await this.debtsMultipleService.createMultipleDebt(user.id, createDebtDto.userId, createDebtDto.currency);
 
         return this.debtsService.getDebtsById(user.id, newDebt._id);
     };

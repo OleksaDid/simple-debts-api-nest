@@ -35,8 +35,8 @@ export class DebtResponseDto {
     })
     @IsNotEmpty()
     @IsString()
-    @Length(2, 2)
-    countryCode: string;
+    @Length(3, 3)
+    currency: string;
 
     @ApiModelProperty({
         description: 'debts status',
@@ -78,11 +78,11 @@ export class DebtResponseDto {
     moneyOperations: OperationResponseDto[];
 
 
-    constructor(id: Id, user: SendUserDto, type: DebtsAccountType, countryCode: string, status: DebtsStatus, statusAcceptor: Id, summary: number, moneyReceiver: Id, moneyOperations: OperationResponseDto[]) {
+    constructor(id: Id, user: SendUserDto, type: DebtsAccountType, currency: string, status: DebtsStatus, statusAcceptor: Id, summary: number, moneyReceiver: Id, moneyOperations: OperationResponseDto[]) {
         this.id = id;
         this.user = user;
         this.type = type;
-        this.countryCode = countryCode;
+        this.currency = currency;
         this.status = status;
         this.statusAcceptor = statusAcceptor;
         this.summary = summary;

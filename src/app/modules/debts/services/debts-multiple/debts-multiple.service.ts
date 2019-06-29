@@ -25,7 +25,7 @@ export class DebtsMultipleService {
 
 
 
-    async createMultipleDebt(creatorId: Id, userId: Id, countryCode: string): Promise<DebtInterface> {
+    async createMultipleDebt(creatorId: Id, userId: Id, currency: string): Promise<DebtInterface> {
         try {
             const userToCreateDebtWith = await this.User
               .findById(userId)
@@ -47,7 +47,7 @@ export class DebtsMultipleService {
             throw new HttpException('Such debts object is already created', HttpStatus.BAD_REQUEST);
         }
 
-        const newDebtsPayload = new DebtDto(creatorId, userId, DebtsAccountType.MULTIPLE_USERS, countryCode);
+        const newDebtsPayload = new DebtDto(creatorId, userId, DebtsAccountType.MULTIPLE_USERS, currency);
 
         const errors = await validate(newDebtsPayload);
 

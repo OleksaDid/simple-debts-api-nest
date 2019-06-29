@@ -18,11 +18,11 @@ export class CreateDebtDto {
     })
     @IsNotEmpty()
     @IsString()
-    @Length(2, 2)
-    countryCode: string;
+    @Length(3, 3)
+    currency: string;
 
-    constructor(userId: string, countryCode: string) {
+    constructor(userId: string, currency: string) {
         this.userId = userId;
-        this.countryCode = countryCode;
+        this.currency = currency;
     }
 }

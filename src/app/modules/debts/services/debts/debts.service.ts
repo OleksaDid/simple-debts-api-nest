@@ -120,7 +120,7 @@ export class DebtsService {
           debt._id,
           new SendUserDto(user._id, user.name, user.picture),
           debt.type,
-          debt.countryCode,
+          debt.currency,
           debt.status,
           debt.statusAcceptor,
           debt.summary,

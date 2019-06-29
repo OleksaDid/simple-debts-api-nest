@@ -55,10 +55,10 @@ export class ErrorHandler {
 
 
 
-  private _setup = () => {
+  private _setup() {
     Sentry.init({
       dsn: process.env[EnvField.SENTRY_LINK],
       environment: process.env[EnvField.NODE_ENV],
     });
-  };
+  }
 }

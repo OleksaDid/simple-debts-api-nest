@@ -59,7 +59,7 @@ export const DebtSchema = new Schema({
 
     type: Schema.Types[DebtsTypeSchemaType],
 
-    countryCode: String,
+    currency: String,
 
     status: Schema.Types[DebtsStatusCodeSchemaType],
     statusAcceptor: { type: Schema.Types.ObjectId, ref: UserCollectionRef},

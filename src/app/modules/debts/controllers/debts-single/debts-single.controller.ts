@@ -42,7 +42,7 @@ export class DebtsSingleController {
       const newDebt = await this.debtsSingleService.createSingleDebt(
         user.id,
         createPayload.userName,
-        createPayload.countryCode,
+        createPayload.currency,
         `${req.protocol}/${req.hostname}`,
       );
 

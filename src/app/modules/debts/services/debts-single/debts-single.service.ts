@@ -27,7 +27,7 @@ export class DebtsSingleService {
 
 
 
-  async createSingleDebt(creatorId: Id, userName: string, countryCode: string, host: string): Promise<DebtInterface> {
+  async createSingleDebt(creatorId: Id, userName: string, currency: string, host: string): Promise<DebtInterface> {
     const virtUser = new CreateVirtualUserDto(userName);
 
     const errors = await validate(virtUser);
@@ -52,7 +52,7 @@ export class DebtsSingleService {
     user.picture = await this._usersService.generateUserIdenticon(user.id, host);
     await user.save();
 
-    return this.Debts.create(new DebtDto(creatorId, user._id, DebtsAccountType.SINGLE_USER, countryCode))
+    return this.Debts.create(new DebtDto(creatorId, user._id, DebtsAccountType.SINGLE_USER, currency))
   }
 
   async deleteSingleDebt(debt: DebtInterface, userId: Id): Promise<void> {

@@ -67,7 +67,7 @@ describe('Operations (e2e)', () => {
 
     debt = (await request(app.getHttpServer())
       .post('/debts/multiple')
-      .send({userId: user2.user.id, countryCode: 'UA'})
+      .send({userId: user2.user.id, currency: 'UA'})
       .set('Authorization', `Bearer ${user.token}`))
       .body;
 
@@ -87,7 +87,7 @@ describe('Operations (e2e)', () => {
 
     singleDebt = (await request(app.getHttpServer())
       .post('/debts/single')
-      .send({userName: 'Valera12', countryCode: 'UA'})
+      .send({userName: 'Valera12', currency: 'UA'})
       .set('Authorization', `Bearer ${user.token}`))
       .body;
 

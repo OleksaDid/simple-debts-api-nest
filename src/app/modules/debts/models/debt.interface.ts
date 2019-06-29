@@ -8,7 +8,7 @@ import {DebtsStatus} from './debts-status.enum';
 export interface DebtInterface extends Document {
     users: Id[];
     type: DebtsAccountType;
-    countryCode: string;
+    currency: string;
     status: DebtsStatus;
     statusAcceptor: Id;
     summary: number;
