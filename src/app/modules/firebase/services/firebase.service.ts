@@ -42,13 +42,13 @@ export class FirebaseService {
     this._fileStorage = firebase.storage();
   }
 
-  async uploadFile(filePath: string, fileName: string, destination: string, host: string): Promise<string> {
+  async uploadFile(filePath: string, fileName: string, destination: string, protocolAndHost: string): Promise<string> {
     const [newFile] = await this.storage.bucket().upload(filePath, {
       destination
     });
     await newFile.makePublic();
     fs.unlinkSync(filePath);
-    return `${host}/static/${destination}`;
+    return `${protocolAndHost}/static/${destination}`;
   }
 
   async getStaticFile(fileName: string): Promise<Buffer> {

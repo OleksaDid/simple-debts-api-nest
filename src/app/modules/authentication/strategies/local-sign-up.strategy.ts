@@ -62,7 +62,7 @@ export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStr
 
       createdUser = await this.User.findOne({email}).exec();
 
-      createdUser.picture = await this._userService.generateUserIdenticon(createdUser.id, req.hostname);
+      createdUser.picture = await this._userService.generateUserIdenticon(createdUser.id, `${req.protocol}/${req.hostname}`);
       createdUser.name = email.match(EMAIL_NAME_PATTERN)[0];
 
       await createdUser.save();

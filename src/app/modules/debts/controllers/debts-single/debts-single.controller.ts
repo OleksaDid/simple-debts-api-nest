@@ -43,7 +43,7 @@ export class DebtsSingleController {
         user.id,
         createPayload.userName,
         createPayload.countryCode,
-        req.hostname
+        `${req.protocol}/${req.hostname}`,
       );
 
       return this.debtsService.getDebtsById(user.id, newDebt._id);

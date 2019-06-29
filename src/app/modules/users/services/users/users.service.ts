@@ -45,10 +45,10 @@ export class UsersService {
       .map(user => new SendUserDto(user.id, user.name, user.picture));
   }
 
-  async updateUserData(user: SendUserDto, userInfo: UpdateUserDataDto, file?: Express.Multer.File, host?: string): Promise<SendUserDto> {
+  async updateUserData(user: SendUserDto, userInfo: UpdateUserDataDto, file?: Express.Multer.File, protocolAndHost?: string): Promise<SendUserDto> {
     if(file) {
       await this._deleteUserFile(user.picture);
-      userInfo.picture = await this._uploadUserImage(file.path, file.filename, host);
+      userInfo.picture = await this._uploadUserImage(file.path, file.filename, protocolAndHost);
     }
 
     const updatedUser = await this.User.findByIdAndUpdate(user.id, userInfo);
@@ -70,7 +70,7 @@ export class UsersService {
     this._deleteUserFile(user.picture);
   }
 
-  async generateUserIdenticon(userId: Id, host: string): Promise<string> {
+  async generateUserIdenticon(userId: Id, protocolAndHost: string): Promise<string> {
     const identiconOptions = {
       background: [255, 255, 255, 255],         // rgba white
       margin: 0.2,                              // 20% margin
@@ -85,13 +85,13 @@ export class UsersService {
       new Buffer(imgBase64, 'base64')
     );
 
-    return this._uploadUserImage(filePath, fileName, host);
+    return this._uploadUserImage(filePath, fileName, protocolAndHost);
   }
 
 
 
-  private async _uploadUserImage(filePath: string, fileName: string, host: string): Promise<string> {
-    return this._firebaseService.uploadFile(filePath, fileName, `${IMAGES_FOLDER_DIR}/${fileName}`, host);
+  private async _uploadUserImage(filePath: string, fileName: string, protocolAndHost: string): Promise<string> {
+    return this._firebaseService.uploadFile(filePath, fileName, `${IMAGES_FOLDER_DIR}/${fileName}`, protocolAndHost);
   }
 
   private async _deleteUserFile(fileUrl: string): Promise<void> {

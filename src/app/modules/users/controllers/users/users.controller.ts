@@ -69,7 +69,7 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
     @ReqUser() user: SendUserDto
   ) {
-      return this.usersService.updateUserData(user, userNameDto, file, req.hostname);
+      return this.usersService.updateUserData(user, userNameDto, file, `${req.protocol}/${req.hostname}`);
   }
 
 }
