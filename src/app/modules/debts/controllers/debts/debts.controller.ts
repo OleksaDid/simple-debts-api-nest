@@ -15,7 +15,7 @@ export class DebtsController {
 
 
   constructor(
-      private readonly debtsService: DebtsService
+    private readonly debtsService: DebtsService
   ) {}
 
 
@@ -36,7 +36,7 @@ export class DebtsController {
     async getAllUserDebts(
         @ReqUser() user: SendUserDto
     ) {
-        return this.debtsService.getAllUserDebts(user.id);
+      return this.debtsService.getAllUserDebts(user.id);
     }
 
     /*
@@ -80,8 +80,8 @@ export class DebtsController {
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto
     ) {
-        await this.debtsService.deleteDebt(user.id, params.id);
+      await this.debtsService.deleteDebt(user.id, params.id);
 
-        return this.debtsService.getAllUserDebts(user.id);
+      return this.debtsService.getDebtsById(user.id, params.id);
     }
 }
