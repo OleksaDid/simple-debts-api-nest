@@ -1,5 +1,5 @@
-import {Component, HttpStatus, Inject} from '@nestjs/common';
-import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {Id} from '../../../../common/types/types';
 import {DebtsStatus} from '../../models/debts-status.enum';
 import {DebtInterface} from '../../models/debt.interface';
@@ -11,27 +11,31 @@ import {OperationInterface} from '../../../operations/models/operation.interface
 import {OperationStatus} from '../../../operations/models/operation-status.enum';
 import {DebtDto} from '../../models/debt.dto';
 import {Model} from 'mongoose';
-import {OperationsProvider} from '../../../operations/operations.providers';
-import {DebtsProvider} from '../../debts-providers.enum';
-import {UsersProvider} from '../../../users/users-providers.enum';
+import {UserCollectionRef} from '../../../users/models/user-collection-ref';
+import {OperationsCollectionRef} from '../../../operations/models/operation-collection-ref';
+import {DebtsCollectionRef} from '../../models/debts-collection-ref';
 
-@Component()
+@Injectable()
 export class DebtsMultipleService {
     constructor(
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>,
-        @Inject(DebtsProvider.DebtsModelToken) private readonly Debts: Model<DebtInterface>,
-        @Inject(OperationsProvider.OperationsModelToken) private readonly Operation: Model<OperationInterface>
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+        @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
+        @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>
     ) {}
 
 
 
-    async createMultipleDebt(creatorId: Id, userId: Id, countryCode: string): Promise<DebtInterface> {
-        const userToCreateDebtWith = await this.User
-            .findById(userId)
-            .exec();
+    async createMultipleDebt(creatorId: Id, userId: Id, currency: string): Promise<DebtInterface> {
+        try {
+            const userToCreateDebtWith = await this.User
+              .findById(userId)
+              .exec();
 
-        if(!userToCreateDebtWith) {
-            throw new HttpWithRequestException('User is not found', HttpStatus.BAD_REQUEST);
+            if(!userToCreateDebtWith) {
+                throw 'User is not found';
+            }
+        } catch(err) {
+            throw new HttpException('User is not found', HttpStatus.BAD_REQUEST);
         }
 
         const debts = await this.Debts
@@ -40,15 +44,15 @@ export class DebtsMultipleService {
 
 
         if(debts) {
-            throw new HttpWithRequestException('Such debts object is already created', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Such debts object is already created', HttpStatus.BAD_REQUEST);
         }
 
-        const newDebtsPayload = new DebtDto(creatorId, userId, DebtsAccountType.MULTIPLE_USERS, countryCode);
+        const newDebtsPayload = new DebtDto(creatorId, userId, DebtsAccountType.MULTIPLE_USERS, currency);
 
         const errors = await validate(newDebtsPayload);
 
-        if(errors) {
-            throw new HttpWithRequestException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
+        if(errors && errors.length > 0) {
+            throw new HttpException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
         }
 
         return this.Debts.create(newDebtsPayload);
@@ -61,12 +65,11 @@ export class DebtsMultipleService {
 
         const errors = await validate(virtualUserPayload);
 
-        if(errors) {
-            throw new HttpWithRequestException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
+        if(errors && errors.length > 0) {
+            throw new HttpException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
         }
 
-        const createdVirtualUser = await this.User.create([virtualUserPayload])[0];
-
+        const createdVirtualUser = await this.User.create(virtualUserPayload);
 
         const updatedDebt = await this.Debts
             .findByIdAndUpdate(debt.id, {
@@ -109,7 +112,7 @@ export class DebtsMultipleService {
             );
 
         if(!debt) {
-            throw new HttpWithRequestException('Debts not found', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Debts not found', HttpStatus.BAD_REQUEST);
         }
     };
 
@@ -122,7 +125,7 @@ export class DebtsMultipleService {
             });
 
         if(!debt) {
-            throw new HttpWithRequestException('Debts not found', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Debts not found', HttpStatus.BAD_REQUEST);
         }
     };
 }

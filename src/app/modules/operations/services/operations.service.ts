@@ -1,42 +1,51 @@
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {Id} from '../../../common/types/types';
-import {OperationsProvider} from '../operations.providers';
 import {Model, Types} from 'mongoose';
 import {OperationInterface} from '../models/operation.interface';
 import {DebtInterface} from '../../debts/models/debt.interface';
-import {DebtsProvider} from '../../debts/debts-providers.enum';
 import {DebtsStatus} from '../../debts/models/debts-status.enum';
 import {OperationDto} from '../models/operation.dto';
-import {HttpWithRequestException} from '../../../services/error-handler/http-with-request.exception';
 import {DebtsAccountType} from '../../debts/models/debts-account-type.enum';
 import {OperationStatus} from '../models/operation-status.enum';
+import {OperationsCollectionRef} from '../models/operation-collection-ref';
+import {DebtsCollectionRef} from '../../debts/models/debts-collection-ref';
 
-@Component()
+@Injectable()
 export class OperationsService {
 
 
   constructor(
-      @Inject(OperationsProvider.OperationsModelToken) private readonly Operation: Model<OperationInterface>,
-      @Inject(DebtsProvider.DebtsModelToken) private readonly Debts: Model<DebtInterface>,
+      @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>,
+      @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
   ) {}
 
 
   async createOperation(userId: Id, debtsId: Id, moneyAmount: number, moneyReceiver: Id, description: string): Promise<DebtInterface> {
-      let debt = await this.Debts
-          .findOne(
-              {
-                  _id: debtsId,
-                  users: {'$all': [userId, moneyReceiver]},
-                  $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
-              }
-          );
+    let debt: DebtInterface;
 
+    try {
+      debt = await this.Debts
+        .findOne(
+          {
+            _id: debtsId,
+            users: {'$all': [userId, moneyReceiver]},
+            $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
+          }
+        );
+
+      if(!debt) {
+        throw 'Debt wasn\'t found';
+      }
+    } catch(err) {
+      throw new HttpException('Debts wasn\'t found', HttpStatus.BAD_REQUEST);
+    }
 
       const statusAcceptor = debt.users.find(user => user.toString() != userId);
       const newOperation = new OperationDto(debtsId, moneyAmount, moneyReceiver, description, statusAcceptor, debt.type);
 
       if(debt.statusAcceptor && debt.statusAcceptor.toString() === userId) {
-          throw new HttpWithRequestException('Cannot modify debts that need acceptance', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Cannot modify debts that need acceptance', HttpStatus.BAD_REQUEST);
       }
 
       const operation = await this.Operation.create(newOperation);
@@ -57,37 +66,45 @@ export class OperationsService {
   };
 
   async deleteOperation(userId: Id, operationId: Id): Promise<DebtInterface> {
+    let updatedDebt;
 
-      const updatedDebt = await this.Debts
-          .findOneAndUpdate(
-              {
-                  users: {'$in': [userId]},
-                  moneyOperations: {'$in': [operationId]},
-                  type: DebtsAccountType.SINGLE_USER,
-                  $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
-              },
-              {$pull: {moneyOperations: operationId}}
-          )
-          .populate({
-              path: 'moneyOperations',
-              select: 'moneyAmount moneyReceiver',
-          });
+    try {
+      updatedDebt = await this.Debts
+        .findOneAndUpdate(
+          {
+            users: {'$in': [userId]},
+            moneyOperations: {'$in': [operationId]},
+            type: DebtsAccountType.SINGLE_USER,
+            $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
+          },
+          {$pull: {moneyOperations: operationId}}
+        )
+        .populate({
+          path: 'moneyOperations',
+          select: 'moneyAmount moneyReceiver',
+        });
 
-
-      const deletedOperation = await this.Operation.findByIdAndRemove(operationId);
-
-      if(!deletedOperation) {
-          throw new HttpWithRequestException('Operation not found', HttpStatus.BAD_REQUEST);
+      if(!updatedDebt) {
+        throw 'Debt wasn\'t found';
       }
+    } catch(err) {
+      throw new HttpException('Debt wasn\'t found', HttpStatus.BAD_REQUEST);
+    }
+
+    const deletedOperation = await this.Operation.findByIdAndRemove(operationId);
+
+    if(!deletedOperation) {
+        throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
+    }
 
 
-      const operation = updatedDebt.moneyOperations.find(op => op.id.toString() === operationId);
-      const moneyAmount = operation.moneyAmount;
-      const moneyReceiver = updatedDebt.users.find(user => user.toString() !== operation.moneyReceiver);
+    const operation = updatedDebt.moneyOperations.find(op => op.id.toString() === operationId);
+    const moneyAmount = operation.moneyAmount;
+    const moneyReceiver = updatedDebt.users.find(user => user.toString() !== operation.moneyReceiver);
 
-      await this.calculateDebtsSummary(updatedDebt, moneyReceiver, moneyAmount).save();
+    await this.calculateDebtsSummary(updatedDebt, moneyReceiver, moneyAmount).save();
 
-      return updatedDebt;
+    return updatedDebt;
   };
 
   async acceptOperation(userId: Id, operationId: Id): Promise<DebtInterface> {
@@ -104,7 +121,7 @@ export class OperationsService {
 
 
       if(!operation) {
-          throw new HttpWithRequestException('Operation not found', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
       }
 
       const debt = await this.Debts
@@ -128,7 +145,7 @@ export class OperationsService {
       const operation = await this.Operation.findOne({_id: operationId, status: OperationStatus.CREATION_AWAITING});
 
       if(!operation) {
-          throw new HttpWithRequestException('Operation is not found', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Operation is not found', HttpStatus.BAD_REQUEST);
       }
 
       const debt = await this.Debts
@@ -139,7 +156,7 @@ export class OperationsService {
           .populate({ path: 'moneyOperations', select: 'status'});
 
       if(!debt) {
-          throw new HttpWithRequestException('You don\'t have permissions to delete this operation', HttpStatus.BAD_REQUEST);
+          throw new HttpException('You don\'t have permissions to delete this operation', HttpStatus.BAD_REQUEST);
       }
 
       await this.Operation.findByIdAndRemove(operationId);

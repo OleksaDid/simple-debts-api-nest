@@ -8,8 +8,8 @@ export class UserNameDto {
         type: 'string',
         required: true
     })
-    @IsNotEmpty()
-    @IsString()
     @Length(1, 25)
+    @IsString()
+    @IsNotEmpty()
     name: string;
 }

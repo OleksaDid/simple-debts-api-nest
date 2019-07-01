@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "simple-debts-api-dev",
+    "prod": "simple-debts-api"
+  }
+}

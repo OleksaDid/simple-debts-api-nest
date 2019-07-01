@@ -10,6 +10,6 @@ export class ResponseError {
             delete error.fields;
         }
 
-        this.error = error.message || error;
+        this.error = (error.message || error.error) || error;
     }
 }

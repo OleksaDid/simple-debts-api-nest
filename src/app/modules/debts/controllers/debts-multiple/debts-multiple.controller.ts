@@ -1,10 +1,10 @@
-import {Body, Controller, Delete, HttpStatus, Param, Post} from '@nestjs/common';
+import {Body, Controller, HttpException, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
+import {AuthGuard} from '@nestjs/passport';
 import {ApiBearerAuth, ApiResponse, ApiUseTags} from '@nestjs/swagger';
 import {DebtResponseDto} from '../../models/debt-response.dto';
 import {ReqUser} from '../../../../common/decorators/request-user.decorator';
 import {CreateDebtDto} from '../../models/create-debt.dto';
 import {SendUserDto} from '../../../users/models/user.dto';
-import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {DebtsService} from '../../services/debts/debts.service';
 import {IdParamDto} from '../../../../common/classes/id-param.dto';
 import {DebtsMultipleService} from '../../services/debts-multiple/debts-multiple.service';
@@ -26,23 +26,24 @@ export class DebtsMultipleController {
 
 
     @ApiResponse({
-        status: 201,
-        type: DebtResponseDto
+      status: 201,
+      type: DebtResponseDto
     })
     @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
+      status: 400,
+      description: 'Bad Request'
     })
+    @UseGuards(AuthGuard())
     @Post()
     async createNewDebt(
         @Body() createDebtDto: CreateDebtDto,
         @ReqUser() user: SendUserDto
     ): Promise<DebtResponseDto> {
         if(user.id == createDebtDto.userId) {
-            throw new HttpWithRequestException('You cannot create Debts with yourself', HttpStatus.BAD_REQUEST);
+            throw new HttpException('You cannot create Debts with yourself', HttpStatus.BAD_REQUEST);
         }
 
-        const newDebt = await this.debtsMultipleService.createMultipleDebt(user.id, createDebtDto.userId, createDebtDto.countryCode);
+        const newDebt = await this.debtsMultipleService.createMultipleDebt(user.id, createDebtDto.userId, createDebtDto.currency);
 
         return this.debtsService.getDebtsById(user.id, newDebt._id);
     };
@@ -50,14 +51,15 @@ export class DebtsMultipleController {
 
 
     @ApiResponse({
-        status: 201,
-        type: DebtResponseDto
+      status: 201,
+      type: DebtResponseDto
     })
     @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
+      status: 400,
+      description: 'Bad Request'
     })
-    @Post(':id/creation-accept')
+    @UseGuards(AuthGuard())
+    @Post(':id/creation/accept')
     async acceptCreation(
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto
@@ -70,15 +72,16 @@ export class DebtsMultipleController {
 
 
     @ApiResponse({
-        status: 201,
-        type: DebtResponseDto,
-        isArray: true
+      status: 201,
+      type: DebtResponseDto,
+      isArray: true
     })
     @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
+      status: 400,
+      description: 'Bad Request'
     })
-    @Post(':id/creation-decline')
+    @UseGuards(AuthGuard())
+    @Post(':id/creation/decline')
     async declineCreation(
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto

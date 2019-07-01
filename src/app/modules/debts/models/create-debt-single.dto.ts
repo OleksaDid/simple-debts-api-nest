@@ -19,11 +19,11 @@ export class CreateDebtSingleDto {
     })
     @IsNotEmpty()
     @IsString()
-    @Length(2, 2)
-    countryCode: string;
+    @Length(3, 3)
+    currency: string;
 
-    constructor(userName: string, countryCode: string) {
+    constructor(userName: string, currency: string) {
         this.userName = userName;
-        this.countryCode = countryCode;
+        this.currency = currency;
     }
 }

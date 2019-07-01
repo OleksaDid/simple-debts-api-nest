@@ -1,67 +1,101 @@
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {Id} from '../../../../common/types/types';
 import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
 import {DebtInterface} from '../../../debts/models/debt.interface';
 import {Model} from 'mongoose';
 import {UserInterface} from '../../models/user.interface';
-import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
-import {IMAGES_FOLDER_FILE_PATTERN} from '../../../../common/constants/constants';
+import {IMAGES_FOLDER_DIR, IMAGES_FOLDER_FILE_PATTERN} from '../../../../common/constants/constants';
+import {DebtsCollectionRef} from '../../../debts/models/debts-collection-ref';
+import {UserCollectionRef} from '../../models/user-collection-ref';
+import {FirebaseService} from '../../../firebase/services/firebase.service';
+import * as Identicon from 'identicon.js';
 import * as fs from 'fs';
-import {UsersProvider} from '../../users-providers.enum';
-import {DebtsProvider} from '../../../debts/debts-providers.enum';
 
-@Component()
+@Injectable()
 export class UsersService {
 
-    constructor(
-        @Inject(DebtsProvider.DebtsModelToken) private readonly Debts: Model<DebtInterface>,
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>,
-    ) {}
+  constructor(
+    @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
+    @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+    private _firebaseService: FirebaseService
+  ) {}
 
 
 
-    public async getUsersByName(name: string, userId: Id): Promise<SendUserDto[]> {
-        const debts = await this.Debts
-            .find({'users': {'$all': [userId]}})
-            .populate({ path: 'users', select: 'name picture'})
-            .exec();
+  async getUsersByName(name: string, userId: Id): Promise<SendUserDto[]> {
+    const debts = await this.Debts
+      .find({'users': {'$all': [userId]}})
+      .populate({ path: 'users', select: 'name picture'})
+      .exec();
 
-        const usedUserIds = debts
-            .map(debt => debt.users.find(user => user['id'].toString() != userId)['id']);
+    const usedUserIds = debts
+      .map(debt => debt.users.find(user => user['id'].toString() != userId)['id']);
 
-        const users = await this.User
-            .find({
-                name: new RegExp(name, 'i'),
-                virtual: false
-            })
-            .limit(15)
-            .exec();
+    const users = await this.User
+      .find({
+        name: new RegExp(name, 'i'),
+        virtual: false
+      })
+      .limit(15)
+      .exec();
 
-        return users
-            .filter(user => user.id != userId && !usedUserIds.find(id => user.id == id))
-            .map(user => new SendUserDto(user.id, user.name, user.picture));
+    return users
+      .filter(user => user.id != userId && !usedUserIds.find(id => user.id == id))
+      .map(user => new SendUserDto(user.id, user.name, user.picture));
+  }
+
+  async updateUserData(user: SendUserDto, userInfo: UpdateUserDataDto, file?: Express.Multer.File, protocolAndHost?: string): Promise<SendUserDto> {
+    if(file) {
+      await this._deleteUserFile(user.picture);
+      userInfo.picture = await this._uploadUserImage(file.path, file.filename, protocolAndHost);
     }
 
-    public async updateUserData(userId: Id, userInfo: UpdateUserDataDto): Promise<SendUserDto> {
-        const updatedUser = await this.User
-            .findByIdAndUpdate(userId, userInfo);
+    const updatedUser = await this.User.findByIdAndUpdate(user.id, userInfo);
 
-        if(!updatedUser) {
-            throw new HttpWithRequestException('User not found', HttpStatus.BAD_REQUEST);
-        }
+    if(!updatedUser) {
+      throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
+    }
 
-        return new SendUserDto(updatedUser.id, userInfo.name, userInfo.picture || updatedUser.picture);
+    return new SendUserDto(updatedUser.id, userInfo.name, userInfo.picture || updatedUser.picture);
+  };
+
+  async deleteUser(userId: Id): Promise<void> {
+    const user = await this.User.findByIdAndRemove(userId);
+
+    if(!user) {
+      throw new HttpException('Virtual user is not found', HttpStatus.BAD_REQUEST);
+    }
+
+    this._deleteUserFile(user.picture);
+  }
+
+  async generateUserIdenticon(userId: Id, protocolAndHost: string): Promise<string> {
+    const identiconOptions = {
+      background: [255, 255, 255, 255],         // rgba white
+      margin: 0.2,                              // 20% margin
+      size: 200
     };
+    const imgBase64 = new Identicon(userId, identiconOptions).toString();
+    const fileName = `${userId}.png`;
+    const filePath = `${IMAGES_FOLDER_DIR}/${fileName}`;
 
-    public async deleteUser(userId: Id): Promise<void> {
-        const user = await this.User.findByIdAndRemove(userId);
+    fs.writeFileSync(
+      filePath,
+      new Buffer(imgBase64, 'base64')
+    );
 
-        if(!user) {
-            throw new HttpWithRequestException('Virtual user is not found', HttpStatus.BAD_REQUEST);
-        }
+    return this._uploadUserImage(filePath, fileName, protocolAndHost);
+  }
 
-        const imageName = user.picture.match(IMAGES_FOLDER_FILE_PATTERN);
 
-        fs.unlinkSync('public' + imageName);
-    }
+
+  private async _uploadUserImage(filePath: string, fileName: string, protocolAndHost: string): Promise<string> {
+    return this._firebaseService.uploadFile(filePath, fileName, `${IMAGES_FOLDER_DIR}/${fileName}`, protocolAndHost);
+  }
+
+  private async _deleteUserFile(fileUrl: string): Promise<void> {
+    const imageName = fileUrl.match(IMAGES_FOLDER_FILE_PATTERN)[0];
+    return this._firebaseService.deleteFile(imageName);
+  }
 }

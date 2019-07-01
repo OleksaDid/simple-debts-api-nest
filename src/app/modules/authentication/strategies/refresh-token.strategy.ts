@@ -1,50 +1,46 @@
-import * as passport from 'passport';
-import * as passportJWT from 'passport-jwt';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import {Component, HttpStatus, Inject} from '@nestjs/common';
-import {UserInterface} from "../../users/models/user.interface";
-import {Model} from "mongoose";
-import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";
-import {AuthStrategy} from "../strategies-list.enum";
-import {JwtPayloadInterface} from '../models/jwt-payload';
+import {PassportStrategy} from '@nestjs/passport';
+import {ExtractJwt, Strategy} from 'passport-jwt';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
+import {UserInterface} from '../../users/models/user.interface';
+import {Model} from 'mongoose';
+import {AuthStrategy} from '../strategies-list.enum';
 import {DateHelper} from '../../../common/classes/date-helper';
 import {AuthenticationService} from '../services/authentication/authentication.service';
-import {UsersProvider} from '../../users/users-providers.enum';
+import {UserCollectionRef} from '../../users/models/user-collection-ref';
+import {ConfigService} from '../../config/services/config.service';
+import {EnvField} from '../../config/models/env-field.enum';
+import {JwtPayload} from '../models/jwt-payload';
+import {AuthUser} from '../models/auth-user';
 
 
-@Component()
-export class RefreshTokenStrategy extends passportJWT.Strategy {
+@Injectable()
+export class RefreshTokenStrategy extends PassportStrategy(Strategy, AuthStrategy.REFRESH_TOKEN_STRATEGY) {
+
     constructor(
         private readonly authService: AuthenticationService,
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>
+        private readonly _config: ConfigService,
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
     ) {
-        super(
-            {
-                jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
-                secretOrKey: process.env.REFRESH_JWT_SECRET,
-                ignoreExpiration: true
-            },
-            async (jwt_payload: JwtPayloadInterface, done) => await this.verify(jwt_payload, done)
-        );
-        passport.use(AuthStrategy.REFRESH_TOKEN_STRATEGY, this);
+        super({
+            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+            secretOrKey: _config.get(EnvField.REFRESH_JWT_SECRET),
+            ignoreExpiration: true
+        });
     }
 
-    public async verify(jwt_payload: JwtPayloadInterface, done) {
+    async validate(jwt_payload: JwtPayload): Promise<AuthUser> {
 
-        if(jwt_payload.exp < DateHelper.getNowDateInSeconds()) {
-            return done(new HttpWithRequestException('Refresh Token Expired', HttpStatus.BAD_REQUEST));
-        }
+      if(jwt_payload.exp < DateHelper.getNowDateInSeconds()) {
+          throw new HttpException('Refresh Token Expired', HttpStatus.BAD_REQUEST);
+      }
 
-        this.User
-            .findById(jwt_payload.id)
-            .lean()
-            .then((user: UserInterface) => {
-                if (!user || user.refreshTokenId !== jwt_payload.jwtid) {
-                    throw new HttpWithRequestException('Invalid Token', HttpStatus.BAD_REQUEST);
-                }
+      const user: UserInterface = await this.User.findById(jwt_payload.id).lean() as UserInterface;
 
-                return this.authService.updateTokensAndReturnUser(user, done);
-            })
-            .catch(err => done(err));
+      if (!user || user.refreshTokenId !== jwt_payload.jwtid) {
+        throw new HttpException('Invalid Token', HttpStatus.BAD_REQUEST);
+      }
+
+      return this.authService.updateTokensAndReturnUser(user);
     }
 }

@@ -141,6 +141,7 @@ bin/
 
 # public folder
 public/
+images/
 
 # config
 /config
@@ -151,3 +152,4 @@ public/
 
 # builds folder
 builds/
+dist/

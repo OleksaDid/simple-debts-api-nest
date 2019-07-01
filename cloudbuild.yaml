@@ -1,0 +1,11 @@
+steps:
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['install']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/${_PROJECT_ID}/image1', '--build-arg', 'NODE_ENV=${_NODE_ENV}', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/${_PROJECT_ID}/image1']
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['beta', 'run', 'deploy', 'image1', '--image', 'gcr.io/${_PROJECT_ID}/image1', '--region', 'us-central1', '--platform', 'managed']
+images:
+  - gcr.io/${_PROJECT_ID}/image1

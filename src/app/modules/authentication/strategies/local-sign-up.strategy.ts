@@ -1,87 +1,72 @@
-import * as passport from 'passport';
 import * as LocalStrategy from 'passport-local';
+import {PassportStrategy} from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {UserInterface} from "../../users/models/user.interface";
-import {Model} from "mongoose";
+import {Model} from 'mongoose';
 import {AuthenticationService} from "../services/authentication/authentication.service";
-import {HttpWithRequestException} from "../../../services/error-handler/http-with-request.exception";
 import {AuthStrategy} from "../strategies-list.enum";
 import {EMAIL_NAME_PATTERN, EMAIL_PATTERN, PASSWORD_LENGTH_RESTRICTIONS} from "../../../common/constants/constants";
-import {ImagesHelper} from "../../../common/classes/images-helper";
-import {UsersProvider} from '../../users/users-providers.enum';
+import {UserCollectionRef} from '../../users/models/user-collection-ref';
+import {AuthUser} from '../models/auth-user';
+import {Request} from 'express';
+import {UsersService} from '../../users/services/users/users.service';
 
 
-@Component()
-export class LocalSignUpStrategy extends LocalStrategy {
+@Injectable()
+export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStrategy.LOCAL_SIGN_UP_STRATEGY) {
     constructor(
         private readonly authService: AuthenticationService,
-        @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>
+        private _userService: UsersService,
+        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
     ) {
-        super(
-            {
-                usernameField : 'email',
-                passwordField : 'password',
-                passReqToCallback : true // allows us to pass back the entire request to the callback
-            },
-            async (req, email, password, done) => await this.verify(req, email, password, done)
-        );
-        passport.use(AuthStrategy.LOCAL_SIGN_UP_STRATEGY, this);
+        super({
+            usernameField : 'email',
+            passwordField : 'password',
+            passReqToCallback : true // allows us to pass back the entire request to the callback
+        });
     }
 
-    public async verify(req, email, password, done)  {
-        let createdUser;
+    async validate(req: Request, email, password): Promise<AuthUser>  {
+      let createdUser;
 
-        // asynchronous
-        // User.findOne wont fire unless data is sent back
-        process.nextTick(() => {
+      const user = await this.User.findOne({ 'email' :  email });
 
-            this.User
-                .findOne({ 'email' :  email })
-                .then((user: UserInterface) => {
-                    // check to see if theres already a user with that email
-                    if (user) {
-                        throw new HttpWithRequestException('User with this email already exists', HttpStatus.BAD_REQUEST, req);
-                    }
+      // check to see if theres already a user with that email
+      if (user) {
+        throw new HttpException('User with this email already exists', HttpStatus.BAD_REQUEST);
+      }
 
-                    if(!email.match(EMAIL_PATTERN)) {
-                        throw new HttpWithRequestException('Email is wrong', HttpStatus.BAD_REQUEST, req);
-                    }
+      if(!email.match(EMAIL_PATTERN)) {
+        throw new HttpException('Email is wrong', HttpStatus.BAD_REQUEST);
+      }
 
-                    if(
-                        password.length < PASSWORD_LENGTH_RESTRICTIONS.min ||
-                        password.length > PASSWORD_LENGTH_RESTRICTIONS.max
-                    ) {
-                        throw new HttpWithRequestException('Invalid password length', HttpStatus.BAD_REQUEST, req);
-                    }
+      if(
+        password.length < PASSWORD_LENGTH_RESTRICTIONS.min ||
+        password.length > PASSWORD_LENGTH_RESTRICTIONS.max
+      ) {
+        throw new HttpException('Invalid password length', HttpStatus.BAD_REQUEST);
+      }
 
-                    // if there is no user with that email
-                    // create the user
-                    const newUser: any  = new this.User();
+      // if there is no user with that email
+      // create the user
+      const newUser: any  = new this.User();
 
-                    // set the user's local credentials
-                    newUser.email    = email;
-                    newUser.password = newUser.generateHash(password);
+      // set the user's local credentials
+      newUser.email    = email;
+      newUser.password = newUser.generateHash(password);
 
-                    // save the user
-                    return newUser.save();
-                })
-                .then(() => this.User.findOne({email}))
-                .then((user: UserInterface) => {
-                    const newUser: any = new this.User();
-                    createdUser = user;
+      // save the user
+      await newUser.save();
 
-                    return newUser.generateIdenticon(user.id);
-                })
-                .then(image => {
-                    createdUser.picture = ImagesHelper.getImagesPath(req) + image;
-                    createdUser.name = email.match(EMAIL_NAME_PATTERN)[0];
+      createdUser = await this.User.findOne({email}).exec();
 
-                    return createdUser.save();
-                })
-                .then(() => this.authService.updateTokensAndReturnUser(createdUser, done))
-                .catch(err => done(err));
+      createdUser.picture = await this._userService.generateUserIdenticon(createdUser.id, `${req.protocol}/${req.hostname}`);
+      createdUser.name = email.match(EMAIL_NAME_PATTERN)[0];
 
-        });
+      await createdUser.save();
+
+      return this.authService.updateTokensAndReturnUser(createdUser);
     }
 }

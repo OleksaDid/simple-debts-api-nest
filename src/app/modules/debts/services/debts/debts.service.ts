@@ -1,30 +1,30 @@
-import {Component, HttpStatus, Inject} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
+import {InjectModel} from '@nestjs/mongoose';
 import {Model} from 'mongoose';
 import {UserInterface} from '../../../users/models/user.interface';
 import {Id} from '../../../../common/types/types';
 import {DebtInterface} from '../../models/debt.interface';
-import {HttpWithRequestException} from '../../../../services/error-handler/http-with-request.exception';
 import {DebtsListDto} from '../../models/debt.dto';
 import {DebtsAccountType} from '../../models/debts-account-type.enum';
 import {SendUserDto} from '../../../users/models/user.dto';
 import {DebtsStatus} from '../../models/debts-status.enum';
-import {OperationsProvider} from '../../../operations/operations.providers';
 import {OperationInterface} from '../../../operations/models/operation.interface';
-import {DebtsProvider} from '../../debts-providers.enum';
-import {UsersProvider} from '../../../users/users-providers.enum';
 import {DebtResponseDto} from '../../models/debt-response.dto';
 import {OperationResponseDto} from '../../../operations/models/operation-response.dto';
 import {DebtsMultipleService} from '../debts-multiple/debts-multiple.service';
 import {DebtsSingleService} from '../debts-single/debts-single.service';
+import {UserCollectionRef} from '../../../users/models/user-collection-ref';
+import {DebtsCollectionRef} from '../../models/debts-collection-ref';
+import {OperationsCollectionRef} from '../../../operations/models/operation-collection-ref';
 
-@Component()
+@Injectable()
 export class DebtsService {
 
 
   constructor(
-      @Inject(UsersProvider.UsersModelToken) private readonly User: Model<UserInterface>,
-      @Inject(DebtsProvider.DebtsModelToken) private readonly Debts: Model<DebtInterface>,
-      @Inject(OperationsProvider.OperationsModelToken) private readonly Operation: Model<OperationInterface>,
+      @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+      @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
+      @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>,
       private readonly multipleDebtsService: DebtsMultipleService,
       private readonly singleDebtsService: DebtsSingleService
   ) {}
@@ -59,20 +59,27 @@ export class DebtsService {
           .populate({ path: 'users', select: 'name picture virtual'});
 
       if(!debt) {
-          throw new HttpWithRequestException('Debts with id ' + debtsId + ' is not found', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Debts with id ' + debtsId + ' is not found', HttpStatus.BAD_REQUEST);
       }
 
       return this.formatDebt(debt, userId, true);
   };
 
   async deleteDebt(userId: Id, debtsId: Id): Promise<void> {
-      const debt = await this.Debts
-          .findOne({_id: debtsId, users: {$in: [userId]}})
-          .populate({ path: 'users', select: 'name picture'});
+    let debt: DebtInterface;
+
+    try {
+      debt = await this.Debts
+        .findOne({_id: debtsId, users: {$in: [userId]}})
+        .populate({ path: 'users', select: 'name picture'});
 
       if(!debt) {
-          throw new HttpWithRequestException('Debts not found', HttpStatus.BAD_REQUEST);
+        throw 'Debt not found';
       }
+    } catch(err) {
+      throw new HttpException('Debt not found', HttpStatus.BAD_REQUEST);
+    }
+
 
       if(debt.type === DebtsAccountType.SINGLE_USER) {
           return this.singleDebtsService.deleteSingleDebt(debt, userId);
@@ -113,7 +120,7 @@ export class DebtsService {
           debt._id,
           new SendUserDto(user._id, user.name, user.picture),
           debt.type,
-          debt.countryCode,
+          debt.currency,
           debt.status,
           debt.statusAcceptor,
           debt.summary,
