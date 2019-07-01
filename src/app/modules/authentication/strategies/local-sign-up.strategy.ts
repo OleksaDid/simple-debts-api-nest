@@ -12,6 +12,7 @@ import {UserCollectionRef} from '../../users/models/user-collection-ref';
 import {AuthUser} from '../models/auth-user';
 import {Request} from 'express';
 import {UsersService} from '../../users/services/users/users.service';
+import {RequestHelper} from '../../../common/classes/request-helper';
 
 
 @Injectable()
@@ -62,7 +63,7 @@ export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStr
 
       createdUser = await this.User.findOne({email}).exec();
 
-      createdUser.picture = await this._userService.generateUserIdenticon(createdUser.id, `${req.protocol}/${req.hostname}`);
+      createdUser.picture = await this._userService.generateUserIdenticon(createdUser.id, RequestHelper.getFormattedHostAndProtocol(req));
       createdUser.name = email.match(EMAIL_NAME_PATTERN)[0];
 
       await createdUser.save();
