@@ -1,8 +1,10 @@
-import {Schema, SchemaType} from 'mongoose';
+import {Schema, SchemaType, Types} from 'mongoose';
 import {DebtsAccountType} from './debts-account-type.enum';
 import {DebtsStatus} from './debts-status.enum';
 import {UserCollectionRef} from '../../users/models/user-collection-ref';
 import {OperationsCollectionRef} from '../../operations/models/operation-collection-ref';
+import {OperationStatus} from '../../operations/models/operation-status.enum';
+import {OperationInterface} from '../../operations/models/operation.interface';
 
 
 const DebtsTypeSchemaType = 'DebtsType';
@@ -54,7 +56,7 @@ Schema.Types[DebtsStatusCodeSchemaType] = StatusCodeDebts;
 
 
 
-export const DebtSchema = new Schema({
+const DebtSchema = new Schema({
     users: [{ type: Schema.Types.ObjectId, ref: UserCollectionRef}],
 
     type: Schema.Types[DebtsTypeSchemaType],
@@ -69,3 +71,31 @@ export const DebtSchema = new Schema({
 
     moneyOperations: [{ type: Schema.Types.ObjectId, ref: OperationsCollectionRef }]
 }, { timestamps: true });
+
+DebtSchema.methods.calculateSummary = async function() {
+    if(this.moneyOperations.length > 0) {
+        const operations = await this.model(OperationsCollectionRef).find({
+            '_id': {$in: this.moneyOperations},
+            'status': OperationStatus.UNCHANGED
+        });
+
+        const user1Summary = getUserOperationsSummary(operations, this.users[0]);
+        const user2Summary = getUserOperationsSummary(operations, this.users[1]);
+
+        this.moneyReceiver = user1Summary > user2Summary ? this.users[0] : this.users[1];
+        this.summary = Math.abs(user1Summary - user2Summary);
+    } else {
+        this.summary = 0;
+        this.moneyReceiver = null;
+    }
+
+    return this.save();
+
+    function getUserOperationsSummary(allOperations: OperationInterface[], userId: string): number {
+        return allOperations
+          .filter(operation => operation.moneyReceiver.toString() === userId.toString())
+          .reduce((summary, operation) => summary += operation.moneyAmount, 0);
+    }
+};
+
+export {DebtSchema};

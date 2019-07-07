@@ -54,35 +54,27 @@ export class OperationsService {
       if(debt.type !== DebtsAccountType.SINGLE_USER) {
           debt.statusAcceptor = debt.users.find(user => user.toString() != userId);
           debt.status = DebtsStatus.CHANGE_AWAITING;
-      } else {
-          debt = this.calculateDebtsSummary(debt, moneyReceiver, moneyAmount);
       }
 
       debt.moneyOperations.push(operation.id);
 
-      await debt.save();
+      await debt.calculateSummary();
 
       return debt;
   };
 
   async deleteOperation(userId: Id, operationId: Id): Promise<DebtInterface> {
-    let updatedDebt;
+    let updatedDebt: DebtInterface;
 
     try {
       updatedDebt = await this.Debts
-        .findOneAndUpdate(
+        .findOne(
           {
             users: {'$in': [userId]},
             moneyOperations: {'$in': [operationId]},
             type: DebtsAccountType.SINGLE_USER,
             $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
-          },
-          {$pull: {moneyOperations: operationId}}
-        )
-        .populate({
-          path: 'moneyOperations',
-          select: 'moneyAmount moneyReceiver',
-        });
+          });
 
       if(!updatedDebt) {
         throw 'Debt wasn\'t found';
@@ -91,18 +83,16 @@ export class OperationsService {
       throw new HttpException('Debt wasn\'t found', HttpStatus.BAD_REQUEST);
     }
 
-    const deletedOperation = await this.Operation.findByIdAndRemove(operationId);
+    const deletedOperation = await this.Operation.findByIdAndUpdate(operationId, {
+      status: OperationStatus.CANCELLED,
+      cancelledBy: userId
+    });
 
     if(!deletedOperation) {
         throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
     }
 
-
-    const operation = updatedDebt.moneyOperations.find(op => op.id.toString() === operationId);
-    const moneyAmount = operation.moneyAmount;
-    const moneyReceiver = updatedDebt.users.find(user => user.toString() !== operation.moneyReceiver);
-
-    await this.calculateDebtsSummary(updatedDebt, moneyReceiver, moneyAmount).save();
+    await updatedDebt.calculateSummary();
 
     return updatedDebt;
   };
@@ -131,72 +121,43 @@ export class OperationsService {
               select: 'status',
           });
 
-      if(debt.moneyOperations.every(operation => operation.status === OperationStatus.UNCHANGED)) {
+      if(debt.moneyOperations.every(operation => operation.status !== OperationStatus.CREATION_AWAITING)) {
           debt.status = DebtsStatus.UNCHANGED;
           debt.statusAcceptor = null;
       }
 
-      await this.calculateDebtsSummary(debt, operation.moneyReceiver, operation.moneyAmount).save();
+      await debt.calculateSummary();
 
       return debt;
   };
 
   async declineOperation(userId: Id, operationId: Id) {
-      const operation = await this.Operation.findOne({_id: operationId, status: OperationStatus.CREATION_AWAITING});
+      const operation = await this.Operation.findOneAndUpdate(
+          {_id: operationId, status: OperationStatus.CREATION_AWAITING},
+          {status: OperationStatus.CANCELLED, cancelledBy: userId}
+        );
 
       if(!operation) {
           throw new HttpException('Operation is not found', HttpStatus.BAD_REQUEST);
       }
 
-      const debt = await this.Debts
-          .findOneAndUpdate(
-              {_id: operation.debtsId, users: {$in: [userId]}},
-              {'$pull': {'moneyOperations': operationId}}
-          )
-          .populate({ path: 'moneyOperations', select: 'status'});
+      const debt = await this.Debts.findOne({_id: operation.debtsId, users: {$in: [userId]}});
 
       if(!debt) {
           throw new HttpException('You don\'t have permissions to delete this operation', HttpStatus.BAD_REQUEST);
       }
 
-      await this.Operation.findByIdAndRemove(operationId);
-
       if(
           debt.moneyOperations
               .filter(operation => operation.id.toString() !== operationId)
-              .every(operation => operation.status === OperationStatus.UNCHANGED)
+              .every(operation => operation.status !== OperationStatus.CREATION_AWAITING)
       ) {
           debt.status = DebtsStatus.UNCHANGED;
           debt.statusAcceptor = null;
       }
 
-      await debt.save();
+      await debt.calculateSummary();
 
       return debt;
   };
-
-
-
-  private calculateDebtsSummary(debt: DebtInterface, moneyReceiver: Id, moneyAmount: number) {
-      debt.summary +=  debt.moneyReceiver !== null
-          ? debt.moneyReceiver.toString() == moneyReceiver.toString()
-              ? +moneyAmount
-              : -moneyAmount
-          : +moneyAmount;
-
-      if(debt.summary === 0) {
-          debt.moneyReceiver = null;
-      }
-
-      if(debt.summary > 0 && debt.moneyReceiver === null) {
-          debt.moneyReceiver = moneyReceiver;
-      }
-
-      if(debt.summary < 0) {
-          debt.moneyReceiver = moneyReceiver;
-          debt.summary += (debt.summary * -2);
-      }
-
-      return debt;
-  }
 }

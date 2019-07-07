@@ -14,4 +14,6 @@ export interface DebtInterface extends Document {
     summary: number;
     moneyReceiver: Id;
     moneyOperations: OperationInterface[];
+
+    calculateSummary(): Promise<void>;
 }

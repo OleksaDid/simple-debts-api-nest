@@ -11,4 +11,5 @@ export interface OperationInterface extends Document {
     description: string;
     status: OperationStatus;
     statusAcceptor: Id;
+    cancelledBy: Id;
 }

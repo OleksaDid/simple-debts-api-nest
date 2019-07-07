@@ -10,6 +10,7 @@ export class OperationDto {
     description: string;
     status: OperationStatus;
     statusAcceptor: Id;
+    cancelledBy: Id;
 
 
     constructor(
@@ -27,5 +28,6 @@ export class OperationDto {
         this.description = description;
         this.status = debtsType === DebtsAccountType.SINGLE_USER ? OperationStatus.UNCHANGED : OperationStatus.CREATION_AWAITING;
         this.statusAcceptor = debtsType === DebtsAccountType.SINGLE_USER ? null : statusAcceptor;
+        this.cancelledBy = null;
     }
 }
