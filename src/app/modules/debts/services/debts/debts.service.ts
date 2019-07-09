@@ -54,11 +54,7 @@ export class DebtsService {
           .populate({
               path: 'moneyOperations',
               select: 'date moneyAmount moneyReceiver description status statusAcceptor',
-              options: { sort: { 'date': -1 } },
-              populate: {
-                path: 'cancelledBy',
-                select: 'name'
-              }
+              options: { sort: { 'date': -1 } }
           })
           .populate({ path: 'users', select: 'name picture virtual'});
 
