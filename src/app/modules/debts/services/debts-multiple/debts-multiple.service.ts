@@ -39,7 +39,10 @@ export class DebtsMultipleService {
         }
 
         const debts = await this.Debts
-            .findOne({'users': {'$all': [userId, creatorId]}})
+            .findOne({
+                users: {'$all': [userId, creatorId]},
+                currency
+            })
             .exec();
 
 

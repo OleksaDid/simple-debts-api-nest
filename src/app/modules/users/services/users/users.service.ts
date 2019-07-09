@@ -24,14 +24,6 @@ export class UsersService {
 
 
   async getUsersByName(name: string, userId: Id): Promise<SendUserDto[]> {
-    const debts = await this.Debts
-      .find({'users': {'$all': [userId]}})
-      .populate({ path: 'users', select: 'name picture'})
-      .exec();
-
-    const usedUserIds = debts
-      .map(debt => debt.users.find(user => user['id'].toString() != userId)['id']);
-
     const users = await this.User
       .find({
         name: new RegExp(name, 'i'),
@@ -41,7 +33,7 @@ export class UsersService {
       .exec();
 
     return users
-      .filter(user => user.id != userId && !usedUserIds.find(id => user.id == id))
+      .filter(user => user.id != userId)
       .map(user => new SendUserDto(user.id, user.name, user.picture));
   }
 
