@@ -646,22 +646,27 @@ describe('Operations (e2e)', () => {
         });
     });
 
-    it('should return debts by id & recalculate summary & set CANCELLED status to operation', () => {
+    it('should return debts by id & recalculate summary & remove id from moneyOperations list', () => {
       return request(app.getHttpServer())
         .delete(`/operations/${operationSingle.id}`)
         .set('Authorization', `Bearer ${user.token}`)
         .expect(200)
-        .then(async ({body: _debt}) => {
+        .then(({body: _debt}) => {
           Object.keys(singleDebt).forEach(key => {
             expect(_debt).toHaveProperty(key);
           });
 
           expect(singleDebt.summary).not.toBe(_debt.summary);
 
-          expect(_debt.moneyOperations.find(operation => operation.id === operationSingle.id)).toBeTruthy();
+          expect(_debt.moneyOperations.find(operation => operation.id === operationSingle.id)).not.toBeTruthy();
+        });
+    });
 
-          const operation = await Operations.findOne({_id: new ObjectId(operationSingle.id)});
-          expect(operation.status).toBe(OperationStatus.CANCELLED);
+    it('should remove operation from db', () => {
+      return Operations
+        .findOne({_id: new ObjectId(operationSingle.id)})
+        .then(resp => {
+          expect(resp).toBe(null);
         });
     });
   });

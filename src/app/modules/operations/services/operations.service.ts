@@ -68,12 +68,15 @@ export class OperationsService {
 
     try {
       updatedDebt = await this.Debts
-        .findOne(
+        .findOneAndUpdate(
           {
             users: {'$in': [userId]},
             moneyOperations: {'$in': [operationId]},
             type: DebtsAccountType.SINGLE_USER,
             $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
+          },
+          {
+            $pull: {moneyOperations: operationId}
           });
 
       if(!updatedDebt) {
@@ -83,10 +86,7 @@ export class OperationsService {
       throw new HttpException('Debt wasn\'t found', HttpStatus.BAD_REQUEST);
     }
 
-    const deletedOperation = await this.Operation.findByIdAndUpdate(operationId, {
-      status: OperationStatus.CANCELLED,
-      cancelledBy: userId
-    });
+    const deletedOperation = await this.Operation.findByIdAndRemove(operationId);
 
     if(!deletedOperation) {
         throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
