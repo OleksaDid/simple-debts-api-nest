@@ -52,21 +52,31 @@ export class FirebaseService {
   }
 
   async getStaticFile(fileName: string): Promise<Buffer> {
-    const file = this.storage.bucket().file(fileName);
+    let file;
 
-    const [exists] = await file.exists();
-    if(!exists) {
+    try {
+      file = this.storage.bucket().file(fileName);
+
+      const [exists] = await file.exists();
+      if(!exists) {
+        throw new HttpException('This file doesn\'t exist', HttpStatus.NOT_FOUND);
+      }
+
+      const [buffer] = await file.download();
+
+      return buffer;
+    } catch(err) {
       throw new HttpException('This file doesn\'t exist', HttpStatus.NOT_FOUND);
     }
-
-    const [buffer] = await file.download();
-
-    return buffer;
   }
 
   async deleteFile(fileName: string): Promise<void> {
-    const file = this.storage.bucket().file(fileName);
-    await file.delete();
+    try {
+      const file = this.storage.bucket().file(fileName);
+      await file.delete();
+    } catch(err) {
+      new HttpException(err, HttpStatus.BAD_REQUEST)
+    }
   }
 
 }

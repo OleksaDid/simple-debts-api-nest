@@ -65,7 +65,7 @@ export class DebtsService {
       return this.formatDebt(debt, userId, true);
   };
 
-  async deleteDebt(userId: Id, debtsId: Id): Promise<void> {
+  async deleteDebt(userId: Id, debtsId: Id): Promise<DebtsAccountType> {
     let debt: DebtInterface;
 
     try {
@@ -82,10 +82,12 @@ export class DebtsService {
 
 
       if(debt.type === DebtsAccountType.SINGLE_USER) {
-          return this.singleDebtsService.deleteSingleDebt(debt, userId);
+          await this.singleDebtsService.deleteSingleDebt(debt, userId);
       } else if(debt.type === DebtsAccountType.MULTIPLE_USERS) {
-          return this.multipleDebtsService.deleteMultipleDebts(debt, userId);
+          await this.multipleDebtsService.deleteMultipleDebts(debt, userId);
       }
+
+      return debt.type;
   };
 
 

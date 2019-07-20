@@ -11,7 +11,7 @@ import {DebtsStatus} from '../src/app/modules/debts/models/debts-status.enum';
 import {DebtResponseDto} from '../src/app/modules/debts/models/debt-response.dto';
 import {CreateOperationDto} from '../src/app/modules/operations/models/create-operation.dto';
 import {OperationResponseDto} from '../src/app/modules/operations/models/operation-response.dto';
-import {INestApplication, Logger} from '@nestjs/common';
+import {INestApplication} from '@nestjs/common';
 import {validate} from 'class-validator';
 import {plainToClass} from 'class-transformer';
 import {OperationStatus} from '../src/app/modules/operations/models/operation-status.enum';
@@ -67,7 +67,7 @@ describe('Operations (e2e)', () => {
 
     debt = (await request(app.getHttpServer())
       .post('/debts/multiple')
-      .send({userId: user2.user.id, currency: 'UA'})
+      .send({userId: user2.user.id, currency: 'UAH'})
       .set('Authorization', `Bearer ${user.token}`))
       .body;
 
@@ -87,7 +87,7 @@ describe('Operations (e2e)', () => {
 
     singleDebt = (await request(app.getHttpServer())
       .post('/debts/single')
-      .send({userName: 'Valera12', currency: 'UA'})
+      .send({userName: 'Valera12', currency: 'UAH'})
       .set('Authorization', `Bearer ${user.token}`))
       .body;
 

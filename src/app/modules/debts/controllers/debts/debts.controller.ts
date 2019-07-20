@@ -7,6 +7,7 @@ import {SendUserDto} from '../../../users/models/user.dto';
 import {DebtResponseDto} from '../../models/debt-response.dto';
 import {IdParamDto} from '../../../../common/classes/id-param.dto';
 import {DebtsListDto} from '../../models/debt.dto';
+import {DebtsAccountType} from '../../models/debts-account-type.enum';
 
 @ApiBearerAuth()
 @ApiUseTags('debts')
@@ -67,8 +68,7 @@ export class DebtsController {
     */
     @ApiResponse({
         status: 200,
-        type: DebtResponseDto,
-        isArray: true
+        type: DebtResponseDto
     })
     @ApiResponse({
         status: 400,
@@ -80,8 +80,12 @@ export class DebtsController {
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto
     ) {
-      await this.debtsService.deleteDebt(user.id, params.id);
+      const type = await this.debtsService.deleteDebt(user.id, params.id);
 
-      return this.debtsService.getDebtsById(user.id, params.id);
+      if(type === DebtsAccountType.MULTIPLE_USERS) {
+        return this.debtsService.getDebtsById(user.id, params.id);
+      } else {
+        return null;
+      }
     }
 }

@@ -2,6 +2,7 @@ import * as request from 'supertest';
 import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {AuthenticationHelper} from './helpers/authentication.helper';
 import {AppHelper} from './helpers/app.helper';
+import {Logger} from '@nestjs/common';
 
 const credentials = require('./fixtures/test-user');
 let user: AuthUser;
@@ -115,11 +116,11 @@ describe('Users (e2e)', () => {
         .set('Authorization', 'Bearer ' + user.token)
         .send(updateData)
         .expect(201)
-        .then(response => {
-          expect(response.body).toHaveProperty('name', updateData.name);
+        .then(({body}) => {
+          expect(body).toHaveProperty('name', updateData.name);
 
-          expect(response.body).toHaveProperty('picture', user.user.picture);
-          expect(response.body).toHaveProperty('id', user.user.id);
+          expect(body).toHaveProperty('picture', user.user.picture);
+          expect(body).toHaveProperty('id', user.user.id);
         });
     });
 
@@ -131,13 +132,13 @@ describe('Users (e2e)', () => {
         .attach('image', __dirname + '/files/avatar.png')
         .field('name', updateData.name)
         .expect(201)
-        .then(response => {
-          expect(response.body).toHaveProperty('name', updateData.name);
+        .then(({body}) => {
+          expect(body).toHaveProperty('name', updateData.name);
 
-          expect(response.body).toHaveProperty('picture');
-          expect(response.body.picture).not.toBe(user.user.picture);
+          expect(body).toHaveProperty('picture');
+          expect(body.picture).not.toBe(user.user.picture);
 
-          expect(response.body).toHaveProperty('id', user.user.id);
+          expect(body).toHaveProperty('id', user.user.id);
         });
     });
   });

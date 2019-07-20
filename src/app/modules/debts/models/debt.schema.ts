@@ -1,4 +1,4 @@
-import {Schema, SchemaType, Types} from 'mongoose';
+import {Schema} from 'mongoose';
 import {DebtsAccountType} from './debts-account-type.enum';
 import {DebtsStatus} from './debts-status.enum';
 import {UserCollectionRef} from '../../users/models/user-collection-ref';
@@ -6,64 +6,33 @@ import {OperationsCollectionRef} from '../../operations/models/operation-collect
 import {OperationStatus} from '../../operations/models/operation-status.enum';
 import {OperationInterface} from '../../operations/models/operation.interface';
 
-
-const DebtsTypeSchemaType = 'DebtsType';
-function DebtsType(key, options) {
-    SchemaType.call(this, key, options, DebtsTypeSchemaType);
-}
-DebtsType.prototype = Object.create(SchemaType.prototype);
-
-DebtsType.prototype.cast = val => {
-    const valuesArray = [
-        DebtsAccountType.SINGLE_USER,
-        DebtsAccountType.MULTIPLE_USERS
-    ];
-
-    if(valuesArray.indexOf(val) === -1) {
-        throw new Error('Debt type: \"' + val + '\" is not valid');
-    }
-
-    return val;
-};
-
-Schema.Types[DebtsTypeSchemaType] =  DebtsType;
-
-
-
-const DebtsStatusCodeSchemaType = 'StatusCodeDebts';
-function StatusCodeDebts(key, options) {
-    SchemaType.call(this, key, options, DebtsStatusCodeSchemaType);
-}
-StatusCodeDebts.prototype = Object.create(SchemaType.prototype);
-
-StatusCodeDebts.prototype.cast = val => {
-    const valuesArray = [
-        DebtsStatus.UNCHANGED,
-        DebtsStatus.CREATION_AWAITING,
-        DebtsStatus.CHANGE_AWAITING,
-        DebtsStatus.USER_DELETED,
-        DebtsStatus.CONNECT_USER
-    ];
-
-    if(valuesArray.indexOf(val) === -1) {
-        throw new Error('Debt type: \"' + val + '\" is not valid');
-    }
-
-    return val;
-};
-
-Schema.Types[DebtsStatusCodeSchemaType] = StatusCodeDebts;
-
-
-
 const DebtSchema = new Schema({
     users: [{ type: Schema.Types.ObjectId, ref: UserCollectionRef}],
 
-    type: Schema.Types[DebtsTypeSchemaType],
+    type: {
+        type: String,
+        enum: [
+            DebtsAccountType.SINGLE_USER,
+            DebtsAccountType.MULTIPLE_USERS
+        ]
+    },
 
-    currency: String,
+    currency: {
+        type: String,
+        minlength: 3,
+        maxlength: 3
+    },
 
-    status: Schema.Types[DebtsStatusCodeSchemaType],
+    status: {
+        type: String,
+        enum: [
+            DebtsStatus.UNCHANGED,
+            DebtsStatus.CREATION_AWAITING,
+            DebtsStatus.CHANGE_AWAITING,
+            DebtsStatus.USER_DELETED,
+            DebtsStatus.CONNECT_USER
+        ]
+    },
     statusAcceptor: { type: Schema.Types.ObjectId, ref: UserCollectionRef},
 
     summary: Number,
@@ -71,6 +40,7 @@ const DebtSchema = new Schema({
 
     moneyOperations: [{ type: Schema.Types.ObjectId, ref: OperationsCollectionRef }]
 }, { timestamps: true });
+
 
 DebtSchema.methods.calculateSummary = async function() {
     if(this.moneyOperations.length > 0) {
@@ -82,8 +52,13 @@ DebtSchema.methods.calculateSummary = async function() {
         const user1Summary = getUserOperationsSummary(operations, this.users[0]);
         const user2Summary = getUserOperationsSummary(operations, this.users[1]);
 
-        this.moneyReceiver = user1Summary > user2Summary ? this.users[0] : this.users[1];
         this.summary = Math.abs(user1Summary - user2Summary);
+
+        if(this.summary === 0) {
+            this.moneyReceiver = null;
+        } else {
+            this.moneyReceiver = user1Summary > user2Summary ? this.users[0] : this.users[1];
+        }
     } else {
         this.summary = 0;
         this.moneyReceiver = null;
