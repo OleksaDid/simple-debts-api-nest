@@ -40,19 +40,28 @@ export class DebtsSingleService {
       .find({'users': {'$all': [creatorId]}, 'type': DebtsAccountType.SINGLE_USER})
       .populate({ path: 'users', select: 'name virtual'});
 
+    const debtWithTheSameVirtUser = (debts && debts.length > 0) ? debts.find(debt => !!debt.users.find(user => user['name'] === userName && user['virtual'])) : null;
+    const existingVirtUser = debtWithTheSameVirtUser ? debtWithTheSameVirtUser.users.find(user => user['name'] === userName && user['virtual']) : null;
+
     if(
-      debts &&
-      debts.length > 0 &&
-      debts.some(debt => !!debt.users.find(user => user['name'] === userName && user['virtual']))
+      !!debtWithTheSameVirtUser &&
+      debtWithTheSameVirtUser.currency === currency
     ) {
-      throw new HttpException('You already have virtual user with such name', HttpStatus.BAD_REQUEST);
+      throw new HttpException('You already have virtual user with such name and currency', HttpStatus.BAD_REQUEST);
     }
 
-    const user = await this.User.create(virtUser);
-    user.picture = await this._usersService.generateUserIdenticon(user.id, host);
-    await user.save();
+    let userId;
 
-    return this.Debts.create(new DebtDto(creatorId, user._id, DebtsAccountType.SINGLE_USER, currency))
+    if(existingVirtUser) {
+      userId = existingVirtUser['_id'];
+    } else {
+      const user = await this.User.create(virtUser);
+      user.picture = await this._usersService.generateUserIdenticon(user.id, host);
+      await user.save();
+      userId = user._id;
+    }
+
+    return this.Debts.create(new DebtDto(creatorId, userId, DebtsAccountType.SINGLE_USER, currency))
   }
 
   async deleteSingleDebt(debt: DebtInterface, userId: Id): Promise<void> {
@@ -60,7 +69,15 @@ export class DebtsSingleService {
 
     await debt.remove();
 
-    await this._usersService.deleteUser(virtualUserId);
+    const debtsWithVirtualUser = await this.Debts.find({
+      users: {
+        $in: [virtualUserId]
+      }
+    });
+
+    if(!debtsWithVirtualUser || debtsWithVirtualUser.length === 0) {
+      await this._usersService.deleteUser(virtualUserId);
+    }
   }
 
   async acceptUserDeletedStatus(userId: Id, debtsId: Id): Promise<DebtInterface> {

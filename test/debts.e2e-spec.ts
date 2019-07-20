@@ -37,6 +37,9 @@ describe('Debts (e2e)', () => {
   let user3: AuthUser;
 
   let singleDebt;
+  let singleDebt2;
+  let virtualUserId;
+
   let multipleDebt;
   let connectUserDebt;
 
@@ -136,36 +139,61 @@ describe('Debts (e2e)', () => {
     });
 
     it('should return new created Debts object', () => {
+      const currency = 'UAH';
+
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UAH'})
+        .send({userId: user2.user.id, currency})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
-        .then(debt => {
+        .then(({body}) => {
           const expectedDebts: any = new DebtDto(
             user1.user.id,
             user2.user.id,
             DebtsAccountType.MULTIPLE_USERS,
-            'UAH'
+            currency
           );
 
           expectedDebts.user = user2.user;
           delete expectedDebts.users;
 
-          multipleDebt = debt.body;
+          multipleDebt = body;
 
-          checkIsObjectMatchesDebtsModel(debt.body, expectedDebts);
+          checkIsObjectMatchesDebtsModel(body, expectedDebts);
         });
     });
 
-    it('should throw an error if debts between these users already exists', () => {
+    it('should throw an error if debts between these users with same currency already exists', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
         .send({userId: user2.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
-        .then(resp => {
-          expect(resp.body).toHaveProperty('error', 'Such debts object is already created');
+        .then(({body}) => {
+          expect(body).toHaveProperty('error', 'Such debts object is already created');
+        });
+    });
+
+    it('should allow to create debt if these users already have debt but with other currency', () => {
+      const currency = 'USD';
+
+      return request(app.getHttpServer())
+        .post('/debts/multiple')
+        .send({userId: user2.user.id, currency})
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201)
+        .then(({body}) => {
+          const expectedDebts: any = new DebtDto(
+            user1.user.id,
+            user2.user.id,
+            DebtsAccountType.MULTIPLE_USERS,
+            currency
+          );
+
+          expectedDebts.user = user2.user;
+          delete expectedDebts.users;
+
+          checkIsObjectMatchesDebtsModel(body, expectedDebts);
         });
     });
   });
@@ -213,9 +241,12 @@ describe('Debts (e2e)', () => {
     });
 
     it('should create new user & return new created Debts object', async () => {
-      const debt = await request(app.getHttpServer())
+      const currency = 'UAH';
+      const userName = 'Valera';
+
+      const {body: debt} = await request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera', currency: 'UAH'})
+        .send({userName, currency})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201);
 
@@ -223,38 +254,51 @@ describe('Debts (e2e)', () => {
         user1.user.id,
         user2.user.id,
         DebtsAccountType.SINGLE_USER,
-        'UAH'
+        currency
       );
 
       expectedDebts.user = {
-        name: 'Valera'
+        name: userName
       };
       delete expectedDebts.users;
 
-      singleDebt = JSON.parse(JSON.stringify(debt.body));
+      singleDebt = JSON.parse(JSON.stringify(debt));
 
-      expect(debt.body.user).toHaveProperty('id');
-      expect(debt.body.user).toHaveProperty('picture');
+      expect(debt.user).toHaveProperty('id');
+      expect(debt.user).toHaveProperty('picture');
 
-      delete debt.body.user.id;
-      delete debt.body.user.picture;
+      delete debt.user.id;
+      delete debt.user.picture;
 
-      checkIsObjectMatchesDebtsModel(debt.body, expectedDebts);
+      checkIsObjectMatchesDebtsModel(debt, expectedDebts);
 
-      const virtualUser: UserInterface = await User.findOne({_id: new ObjectId(singleDebt.user.id)});
+      virtualUserId = singleDebt.user.id;
+      const virtualUser: UserInterface = await User.findOne({_id: new ObjectId(virtualUserId)});
 
       expect(virtualUser).toHaveProperty('virtual');
       expect(virtualUser.virtual).toBeTruthy();
     });
 
-    it('should throw an error if there is already virtual user w/ such name', () => {
+    it('should throw an error if there is already virtual user w/ such name and currency', () => {
       return request(app.getHttpServer())
         .post('/debts/single')
         .send({userName: 'Valera', currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
-          expect(resp.body).toHaveProperty('error', 'You already have virtual user with such name');
+          expect(resp.body).toHaveProperty('error', 'You already have virtual user with such name and currency');
+        });
+    });
+
+    it('should allow to create debt if there is already virtual user with such name but with other currency', () => {
+      return request(app.getHttpServer())
+        .post('/debts/single')
+        .send({userName: 'Valera', currency: 'USD'})
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201)
+        .then(({body: debt}) => {
+          singleDebt2 = debt;
+          expect(debt.user.id).toBe(virtualUserId);
         });
     });
   });
@@ -415,7 +459,20 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    it('should remove virtual user from db', () => {
+    it('shouldn\'t remove virtual user from if there still other debts with virt user', () => {
+      return User
+        .findOne({_id: new ObjectId(singleDebt.user.id)})
+        .then(({_id}) => expect(_id.toString()).toBe(virtualUserId));
+    });
+
+    it('should remove virtual user from db if no more debts with virt user left', async () => {
+
+      await request(app.getHttpServer())
+        .delete('/debts/' + singleDebt2.id)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(200)
+        .then(({body}) => expect(Object.keys(body).length).toBe(0));
+
       return User
         .findOne({_id: new ObjectId(singleDebt.user.id)})
         .then(resp => {
@@ -617,13 +674,13 @@ describe('Debts (e2e)', () => {
         .send({userId: user2.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
-        .then(resp => multipleDebt = resp.body)
+        .then(({body}) => multipleDebt = body)
         .then(() => request(app.getHttpServer())
           .post('/debts/multiple/' + multipleDebt.id + '/creation/decline')
           .set('Authorization', 'Bearer ' + user1.token)
-          .expect(201))
-        .then(resp => {
-          const debts = resp.body;
+          .expect(201)
+        )
+        .then(({body: debts}) => {
           const unchangedDebt = JSON.parse(JSON.stringify(multipleDebt));
           unchangedDebt.status = 'UNCHANGED';
           unchangedDebt.statusAcceptor = null;

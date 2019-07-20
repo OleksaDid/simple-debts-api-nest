@@ -88,6 +88,6 @@ export class DebtsMultipleController {
   ) {
       await this.debtsMultipleService.declineDebtsCreation(user.id, params.id);
 
-        return this.debtsService.getAllUserDebts(user.id);
+      return this.debtsService.getAllUserDebts(user.id);
     }
 }
