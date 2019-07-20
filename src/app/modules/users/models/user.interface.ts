@@ -13,6 +13,8 @@ export interface UserInterface extends Document {
     refreshTokenId: number;
     accessTokenId: number;
 
+    pushTokens: string[];
+
     generateHash: (password: string) => string;
     validPassword: (password: string) => boolean;
 }

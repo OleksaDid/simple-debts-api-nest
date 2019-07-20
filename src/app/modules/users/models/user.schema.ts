@@ -15,6 +15,8 @@ const UserSchema = new Schema({
     refreshTokenId: Number,
     accessTokenId: Number,
 
+    pushTokens: [String]
+
 }, { timestamps: true });
 
 // generating a hash

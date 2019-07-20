@@ -80,6 +80,15 @@ export class UsersService {
     return this._uploadUserImage(filePath, fileName, protocolAndHost);
   }
 
+  async addPushToken(userId: Id, token: string): Promise<void> {
+    await this.User.findByIdAndUpdate(
+      userId,
+      {
+        $addToSet: {pushTokens: token}
+      }
+    )
+  }
+
 
 
   private async _uploadUserImage(filePath: string, fileName: string, protocolAndHost: string): Promise<string> {
