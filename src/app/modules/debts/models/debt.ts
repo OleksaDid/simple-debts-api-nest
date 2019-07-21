@@ -43,8 +43,8 @@ export class Debt extends Typegoose implements BasicDocumentFields {
     if(this.moneyOperations.length > 0) {
       const operations = await new Operation().getModelForClass(Operation, {schemaOptions: {collection: OperationsCollectionRef}})
         .find({
-          '_id': {$in: this.moneyOperations},
-          'status': OperationStatus.UNCHANGED
+          _id: {$in: this.moneyOperations},
+          status: OperationStatus.UNCHANGED
         })
         .exec() as InstanceType<Operation>[];
 

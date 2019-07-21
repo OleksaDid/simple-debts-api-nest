@@ -8,6 +8,7 @@ import {Debt} from '../../debts/models/debt';
 import {Operation} from '../models/operation';
 import {InjectModel} from 'nestjs-typegoose';
 import {ObjectId} from '../../../common/classes/object-id';
+import {DebtsHelper} from '../../debts/models/debts.helper';
 
 @Injectable()
 export class OperationsService {
@@ -39,7 +40,7 @@ export class OperationsService {
       throw new HttpException('Debts wasn\'t found', HttpStatus.BAD_REQUEST);
     }
 
-      const statusAcceptor = debt.users.find(user => user.toString() != userId);
+      const statusAcceptor = DebtsHelper.getAnotherDebtUserId(debt, userId);
 
       const newOperation = new this.Operation({
         debtsId: debtsId as any,
@@ -58,7 +59,7 @@ export class OperationsService {
       await newOperation.save();
 
       if(debt.type !== DebtsAccountType.SINGLE_USER) {
-          debt.statusAcceptor = debt.users.find(user => user.toString() != userId);
+          debt.statusAcceptor = DebtsHelper.getAnotherDebtUserId(debt, userId);
           debt.status = DebtsStatus.CHANGE_AWAITING;
       }
 

@@ -13,6 +13,7 @@ import {User} from '../../../users/models/user';
 import {Debt} from '../../models/debt';
 import {Operation} from '../../../operations/models/operation';
 import {ModelType, InstanceType} from 'typegoose';
+import {DebtsHelper} from '../../models/debts.helper';
 
 @Injectable()
 export class DebtsService {
@@ -93,12 +94,12 @@ export class DebtsService {
   private formatDebt(debt: InstanceType<Debt>, userId: Id, saveOperations: boolean) {
       // make preview for user connect
       if(debt.status === DebtsStatus.CONNECT_USER && debt.statusAcceptor.toString() === userId) {
-          const userToChange = debt.users.find(user => user['virtual']);
+          const userToChange = debt.users.find(user => (user as InstanceType<User>).virtual) as InstanceType<User>;
 
-          debt = JSON.parse(JSON.stringify(debt).replace(userToChange['_id'].toString(), userId.toString()));
+          debt = JSON.parse(JSON.stringify(debt).replace(userToChange._id.toString(), userId.toString()));
       }
 
-      const user = debt.users.find(user => user['_id'].toString() != userId) as User;
+      const user = DebtsHelper.getAnotherDebtUserModel(debt, userId);
 
       let operations = [];
 

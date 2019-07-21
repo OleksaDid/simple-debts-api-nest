@@ -13,6 +13,7 @@ import {User} from '../../../users/models/user';
 import {Debt} from '../../models/debt';
 import {Operation} from '../../../operations/models/operation';
 import {ObjectId} from '../../../../common/classes/object-id';
+import {DebtsHelper} from '../../models/debts.helper';
 
 @Injectable()
 export class DebtsSingleService {
@@ -70,18 +71,18 @@ export class DebtsSingleService {
   }
 
   async deleteSingleDebt(debt: InstanceType<Debt>, userId: Id): Promise<void> {
-    const virtualUser = debt.users.find(user => user['_id'].toString() != userId);
+    const virtualUser = DebtsHelper.getAnotherDebtUserModel(debt, userId);
 
     await debt.remove();
 
     const debtsWithVirtualUser = await this.Debts.find({
       users: {
-        $in: [virtualUser['_id']]
+        $in: [virtualUser._id]
       }
     });
 
     if(!debtsWithVirtualUser || debtsWithVirtualUser.length === 0) {
-      await this._usersService.deleteUser(virtualUser['_id']);
+      await this._usersService.deleteUser(virtualUser._id);
     }
   }
 
@@ -127,7 +128,7 @@ export class DebtsSingleService {
       .find({users: {$all: [userId, connectUserId]}})
       .exec();
 
-    if(debtsWithConnectingUser && debtsWithConnectingUser['length'] > 0) {
+    if(debtsWithConnectingUser && debtsWithConnectingUser.length > 0) {
       throw new HttpException('You already have Debt with this user', HttpStatus.BAD_REQUEST);
     }
 

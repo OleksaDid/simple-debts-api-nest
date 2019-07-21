@@ -11,6 +11,7 @@ import {ModelType, InstanceType} from 'typegoose';
 import {Operation} from '../../../operations/models/operation';
 import {Debt} from '../../models/debt';
 import {User} from '../../../users/models/user';
+import {DebtsHelper} from '../../models/debts.helper';
 
 @Injectable()
 export class DebtsMultipleService {
@@ -59,7 +60,7 @@ export class DebtsMultipleService {
     }
 
     async deleteMultipleDebts(debt: InstanceType<Debt>, userId: Id): Promise<void> {
-        const deletedUserInfo = debt.users.find(user => user['_id'].toString() === userId.toString());
+        const deletedUserInfo = DebtsHelper.getCurrentDebtUserModel(debt, userId);
 
         const virtualUserPayload = new CloneRealUserToVirtualDto(deletedUserInfo['name'], deletedUserInfo['picture']);
 
@@ -79,7 +80,7 @@ export class DebtsMultipleService {
             });
 
 
-        updatedDebt.statusAcceptor = updatedDebt.users.find(user => user.toString() !== userId.toString());
+        updatedDebt.statusAcceptor = DebtsHelper.getAnotherDebtUserId(updatedDebt, userId);
         updatedDebt.users.push(createdVirtualUser._id);
 
         const promises: Promise<InstanceType<Operation>>[] = [];
