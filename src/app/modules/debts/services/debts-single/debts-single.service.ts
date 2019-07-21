@@ -1,33 +1,31 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
-import {DebtInterface} from '../../models/debt.interface';
 import {DebtsStatus} from '../../models/debts-status.enum';
 import {DebtsAccountType} from '../../models/debts-account-type.enum';
 import {Id} from '../../../../common/types/types';
-import {OperationInterface} from '../../../operations/models/operation.interface';
 import {OperationStatus} from '../../../operations/models/operation-status.enum';
 import {DebtDto} from '../../models/debt.dto';
-import {UserInterface} from '../../../users/models/user.interface';
 import {validate} from 'class-validator';
 import {CreateVirtualUserDto} from '../../../users/models/user.dto';
 import {UsersService} from '../../../users/services/users/users.service';
-import {Model} from 'mongoose';
-import {UserCollectionRef} from '../../../users/models/user-collection-ref';
-import {DebtsCollectionRef} from '../../models/debts-collection-ref';
-import {OperationsCollectionRef} from '../../../operations/models/operation-collection-ref';
+import {InjectModel} from 'nestjs-typegoose';
+import {ModelType, InstanceType} from 'typegoose';
+import {User} from '../../../users/models/user';
+import {Debt} from '../../models/debt';
+import {Operation} from '../../../operations/models/operation';
+import {ObjectId} from '../../../../common/classes/object-id';
 
 @Injectable()
 export class DebtsSingleService {
   constructor(
-    @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
-    @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
-    @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>,
+    @InjectModel(User) private readonly User: ModelType<User>,
+    @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
+    @InjectModel(Operation) private readonly Operation: ModelType<Operation>,
     private _usersService: UsersService
   ) {}
 
 
 
-  async createSingleDebt(creatorId: Id, userName: string, currency: string, host: string): Promise<DebtInterface> {
+  async createSingleDebt(creatorId: Id, userName: string, currency: string, host: string): Promise<InstanceType<Debt>> {
     const virtUser = new CreateVirtualUserDto(userName);
 
     const errors = await validate(virtUser);
@@ -36,35 +34,42 @@ export class DebtsSingleService {
       throw new HttpException({message: 'Validation failed', fields: errors}, HttpStatus.BAD_REQUEST);
     }
 
+    const virtUserModel = new this.User(virtUser);
+
     const debts = await this.Debts
       .find({'users': {'$all': [creatorId]}, 'type': DebtsAccountType.SINGLE_USER})
       .populate({ path: 'users', select: 'name virtual'});
 
-    const debtWithTheSameVirtUser = (debts && debts.length > 0) ? debts.find(debt => !!debt.users.find(user => user['name'] === userName && user['virtual'])) : null;
-    const existingVirtUser = debtWithTheSameVirtUser ? debtWithTheSameVirtUser.users.find(user => user['name'] === userName && user['virtual']) : null;
+    let existingVirtUser: User;
 
-    if(
-      !!debtWithTheSameVirtUser &&
-      debtWithTheSameVirtUser.currency === currency
-    ) {
-      throw new HttpException('You already have virtual user with such name and currency', HttpStatus.BAD_REQUEST);
+    if(debts && debts.length > 0) {
+      const debtWithTheSameVirtUser = debts.find(debt => !!debt.users.find(user => (user as User).name === userName && (user as User).virtual));
+      existingVirtUser = debtWithTheSameVirtUser
+        ? debtWithTheSameVirtUser.users.find(user => (user as User).name === userName && (user as User).virtual) as User
+        : null;
+
+      if(
+        !!debtWithTheSameVirtUser &&
+        debtWithTheSameVirtUser.currency === currency
+      ) {
+        throw new HttpException('You already have virtual user with such name and currency', HttpStatus.BAD_REQUEST);
+      }
     }
 
     let userId;
 
     if(existingVirtUser) {
-      userId = existingVirtUser['_id'];
+      userId = existingVirtUser._id;
     } else {
-      const user = await this.User.create(virtUser);
-      user.picture = await this._usersService.generateUserIdenticon(user.id, host);
-      await user.save();
-      userId = user._id;
+      virtUserModel.picture = await this._usersService.generateUserIdenticon(virtUserModel.id, host);
+      await virtUserModel.save();
+      userId = virtUserModel._id;
     }
 
     return this.Debts.create(new DebtDto(creatorId, userId, DebtsAccountType.SINGLE_USER, currency))
   }
 
-  async deleteSingleDebt(debt: DebtInterface, userId: Id): Promise<void> {
+  async deleteSingleDebt(debt: InstanceType<Debt>, userId: Id): Promise<void> {
     const virtualUser = debt.users.find(user => user['_id'].toString() != userId);
 
     await debt.remove();
@@ -80,7 +85,7 @@ export class DebtsSingleService {
     }
   }
 
-  async acceptUserDeletedStatus(userId: Id, debtsId: Id): Promise<DebtInterface> {
+  async acceptUserDeletedStatus(userId: Id, debtsId: Id): Promise<InstanceType<Debt>> {
     let debt;
 
     try {
@@ -117,10 +122,10 @@ export class DebtsSingleService {
     return debt.save();
   };
 
-  async connectUserToSingleDebt(userId: Id, connectUserId: Id, debtsId: Id): Promise<DebtInterface> {
+  async connectUserToSingleDebt(userId: Id, connectUserId: Id, debtsId: Id): Promise<InstanceType<Debt>> {
     const debtsWithConnectingUser = await this.Debts
       .find({users: {$all: [userId, connectUserId]}})
-      .lean();
+      .exec();
 
     if(debtsWithConnectingUser && debtsWithConnectingUser['length'] > 0) {
       throw new HttpException('You already have Debt with this user', HttpStatus.BAD_REQUEST);
@@ -143,7 +148,7 @@ export class DebtsSingleService {
     }
 
     debt.status = DebtsStatus.CONNECT_USER;
-    debt.statusAcceptor = connectUserId;
+    debt.statusAcceptor = connectUserId as any;
 
     return debt.save();
   };
@@ -186,9 +191,9 @@ export class DebtsSingleService {
       promises.push(
         this.Operation
           .findById(operation)
-          .then((op: OperationInterface) => {
+          .then((op: InstanceType<Operation>) => {
             if(op.moneyReceiver === virtualUserId) {
-              op.moneyReceiver = userId;
+              op.moneyReceiver = new ObjectId(userId);
             }
 
             return op.save();

@@ -1,31 +1,28 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
 import {Id} from '../../../../common/types/types';
 import {DebtsStatus} from '../../models/debts-status.enum';
-import {DebtInterface} from '../../models/debt.interface';
-import {UserInterface} from '../../../users/models/user.interface';
 import {CloneRealUserToVirtualDto} from '../../../users/models/user.dto';
 import {validate} from 'class-validator';
 import {DebtsAccountType} from '../../models/debts-account-type.enum';
-import {OperationInterface} from '../../../operations/models/operation.interface';
 import {OperationStatus} from '../../../operations/models/operation-status.enum';
 import {DebtDto} from '../../models/debt.dto';
-import {Model} from 'mongoose';
-import {UserCollectionRef} from '../../../users/models/user-collection-ref';
-import {OperationsCollectionRef} from '../../../operations/models/operation-collection-ref';
-import {DebtsCollectionRef} from '../../models/debts-collection-ref';
+import {InjectModel} from 'nestjs-typegoose';
+import {ModelType, InstanceType} from 'typegoose';
+import {Operation} from '../../../operations/models/operation';
+import {Debt} from '../../models/debt';
+import {User} from '../../../users/models/user';
 
 @Injectable()
 export class DebtsMultipleService {
     constructor(
-        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
-        @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
-        @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>
+        @InjectModel(User) private readonly User: ModelType<User>,
+        @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
+        @InjectModel(Operation) private readonly Operation: ModelType<Operation>
     ) {}
 
 
 
-    async createMultipleDebt(creatorId: Id, userId: Id, currency: string): Promise<DebtInterface> {
+    async createMultipleDebt(creatorId: Id, userId: Id, currency: string): Promise<InstanceType<Debt>> {
         try {
             const userToCreateDebtWith = await this.User
               .findById(userId)
@@ -61,7 +58,7 @@ export class DebtsMultipleService {
         return this.Debts.create(newDebtsPayload);
     }
 
-    async deleteMultipleDebts(debt: DebtInterface, userId: Id): Promise<void> {
+    async deleteMultipleDebts(debt: InstanceType<Debt>, userId: Id): Promise<void> {
         const deletedUserInfo = debt.users.find(user => user['_id'].toString() === userId.toString());
 
         const virtualUserPayload = new CloneRealUserToVirtualDto(deletedUserInfo['name'], deletedUserInfo['picture']);
@@ -85,7 +82,7 @@ export class DebtsMultipleService {
         updatedDebt.statusAcceptor = updatedDebt.users.find(user => user.toString() !== userId.toString());
         updatedDebt.users.push(createdVirtualUser._id);
 
-        const promises: Promise<OperationInterface>[] = [];
+        const promises: Promise<InstanceType<Operation>>[] = [];
         updatedDebt['moneyOperations']
             .forEach(operationId => promises.push(this.Operation.findById(operationId).then(op => op)));
 

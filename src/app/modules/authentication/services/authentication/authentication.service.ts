@@ -1,25 +1,24 @@
 import {Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
 import * as jwt from 'jsonwebtoken';
-import {UserInterface} from '../../../users/models/user.interface';
 import {SendUserDto} from '../../../users/models/user.dto';
-import {Model} from 'mongoose';
 import {AccessJwtPayload, RefreshJwtPayload} from '../../models/jwt-payload';
 import {AuthUser} from '../../models/auth-user';
-import {UserCollectionRef} from '../../../users/models/user-collection-ref';
 import {ConfigService} from '../../../config/services/config.service';
 import {EnvField} from '../../../config/models/env-field.enum';
+import {InjectModel} from 'nestjs-typegoose';
+import {ModelType, InstanceType} from 'typegoose';
+import {User} from '../../../users/models/user';
 
 @Injectable()
 export class AuthenticationService {
 
   constructor(
-    @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+    @InjectModel(User) private readonly User: ModelType<User>,
     private readonly _config: ConfigService
   ) {}
 
 
-  async updateTokensAndReturnUser(user: UserInterface): Promise<AuthUser> {
+  async updateTokensAndReturnUser(user: InstanceType<User>): Promise<AuthUser> {
     const payload = new AccessJwtPayload(user._id);
     const refreshPayload = new RefreshJwtPayload(user._id);
 

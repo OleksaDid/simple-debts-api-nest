@@ -4,15 +4,15 @@ import * as fs from 'fs';
 import {EnvConfig} from '../models/env-config.interface';
 import {EnvType} from '../models/env-type.enum';
 import {EnvField} from '../models/env-field.enum';
-import {MongooseModuleOptions, MongooseOptionsFactory} from '@nestjs/mongoose';
 import {MulterModuleOptions, MulterOptionsFactory} from '@nestjs/platform-express';
 import * as path from "path";
 import {HttpException, HttpStatus} from '@nestjs/common';
 import * as multer from 'multer';
 import {IMAGES_FOLDER_DIR} from '../../../common/constants/constants';
 import {existsSync, mkdirSync} from 'fs';
+import {TypegooseModuleOptions, TypegooseOptionsFactory} from 'nestjs-typegoose';
 
-export class ConfigService implements MongooseOptionsFactory, MulterOptionsFactory {
+export class ConfigService implements TypegooseOptionsFactory, MulterOptionsFactory {
 
   private readonly _envConfig: EnvConfig;
   private readonly _configDirectoryPath: string;
@@ -35,7 +35,7 @@ export class ConfigService implements MongooseOptionsFactory, MulterOptionsFacto
     return this._configDirectoryPath;
   }
 
-  createMongooseOptions(): Promise<MongooseModuleOptions> | MongooseModuleOptions {
+  createTypegooseOptions(): Promise<TypegooseModuleOptions> | TypegooseModuleOptions {
     const isLocalEnv = this.get(EnvField.NODE_ENV) === EnvType.LOCAL;
 
     return {

@@ -1,7 +1,7 @@
 import {Id} from '../../../common/types/types';
 import {OperationStatus} from './operation-status.enum';
 import {ApiModelProperty} from '@nestjs/swagger';
-import {IsDateString, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsPositive, IsString, Length} from 'class-validator';
+import {IsDateString, IsEnum, IsMongoId, IsNotEmpty, IsOptional, IsString} from 'class-validator';
 import {OperationBody} from './operation-body.class';
 
 export class OperationResponseDto extends OperationBody {
@@ -37,7 +37,15 @@ export class OperationResponseDto extends OperationBody {
     @IsMongoId()
     statusAcceptor: Id;
 
-    constructor(id: Id, date: Date, moneyAmount: number, moneyReceiver: Id, description: string, status: OperationStatus, statusAcceptor: Id) {
+    @ApiModelProperty({
+        description: 'id of user who has cancelled the operation',
+        type: 'string'
+    })
+    @IsOptional()
+    @IsMongoId()
+    cancelledBy?: Id;
+
+    constructor(id: Id, date: Date, moneyAmount: number, moneyReceiver: Id, description: string, status: OperationStatus, statusAcceptor: Id, cancelledBy: Id) {
         super();
         this.id = id;
         this.date = date;
@@ -46,5 +54,6 @@ export class OperationResponseDto extends OperationBody {
         this.description = description;
         this.status = status;
         this.statusAcceptor = statusAcceptor;
+        this.cancelledBy = cancelledBy;
     }
 }

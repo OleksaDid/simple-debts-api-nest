@@ -2,12 +2,11 @@ import * as request from 'supertest';
 import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {AuthenticationHelper} from './helpers/authentication.helper';
 import {AppHelper} from './helpers/app.helper';
-import {UserInterface} from '../src/app/modules/users/models/user.interface';
 import {Collection} from 'mongodb';
 import {DbHelper} from './helpers/db.helper';
 import {EnvField} from '../src/app/modules/config/models/env-field.enum';
-import {Logger} from '@nestjs/common';
 import * as mongoose from "mongoose";
+import {User} from '../src/app/modules/users/models/user';
 
 const credentials = require('./fixtures/test-user');
 let user: AuthUser;
@@ -21,7 +20,7 @@ const ObjectId = mongoose.Types.ObjectId;
 describe('Users (e2e)', () => {
   let app;
   let authHelper: AuthenticationHelper;
-  let Users: Collection<UserInterface>;
+  let Users: Collection<User>;
 
   beforeEach(async () => {
     app = await AppHelper.getTestApp();

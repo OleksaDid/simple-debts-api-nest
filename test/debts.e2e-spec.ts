@@ -1,26 +1,28 @@
-import * as fs from "fs";
+import * as fs from 'fs';
 import 'reflect-metadata';
 import * as request from 'supertest';
 import {DebtDto} from '../src/app/modules/debts/models/debt.dto';
 import {DebtsStatus} from '../src/app/modules/debts/models/debts-status.enum';
 import {DebtsAccountType} from '../src/app/modules/debts/models/debts-account-type.enum';
 import * as mongoose from 'mongoose';
-import {UserInterface} from '../src/app/modules/users/models/user.interface';
 import {Logger} from '@nestjs/common';
 import {Collection} from 'mongodb';
 import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {AuthenticationHelper} from './helpers/authentication.helper';
 import {DbHelper} from './helpers/db.helper';
-import {DebtInterface} from '../src/app/modules/debts/models/debt.interface';
 import {AppHelper} from './helpers/app.helper';
-import {OperationInterface} from '../src/app/modules/operations/models/operation.interface';
 import {EnvField} from '../src/app/modules/config/models/env-field.enum';
+import {Debt} from '../src/app/modules/debts/models/debt';
+import {Operation} from '../src/app/modules/operations/models/operation';
+import {User} from '../src/app/modules/users/models/user';
+import {InstanceType} from 'typegoose';
+import * as dotenv from 'dotenv';
+import {DebtResponseDto} from '../src/app/modules/debts/models/debt-response.dto';
 
 const users = require('./fixtures/debts-users');
 const ObjectId = mongoose.Types.ObjectId;
 
 
-import * as dotenv from 'dotenv';
 dotenv.config({ path: __dirname + '/../config/test.env' });
 
 
@@ -28,20 +30,20 @@ describe('Debts (e2e)', () => {
   let app;
   let authHelper: AuthenticationHelper;
 
-  let User: Collection<UserInterface>;
-  let Debts: Collection<DebtInterface>;
-  let Operations: Collection<OperationInterface>;
+  let User: Collection<User>;
+  let Debts: Collection<Debt>;
+  let Operations: Collection<Operation>;
 
   let user1: AuthUser;
   let user2: AuthUser;
   let user3: AuthUser;
 
-  let singleDebt;
-  let singleDebt2;
+  let singleDebt: DebtResponseDto;
+  let singleDebt2: DebtResponseDto;
   let virtualUserId;
 
-  let multipleDebt;
-  let connectUserDebt;
+  let multipleDebt: DebtResponseDto;
+  let connectUserDebt: DebtResponseDto;
 
   let connectUserDebtVirtualUser;
 
@@ -51,6 +53,9 @@ describe('Debts (e2e)', () => {
     Debts = dbHelper.Debts;
     User = dbHelper.Users;
     Operations = dbHelper.Operations;
+
+    await Debts.deleteMany({});
+    await Operations.deleteMany({});
 
     app = await AppHelper.getTestApp();
 
@@ -273,7 +278,7 @@ describe('Debts (e2e)', () => {
       checkIsObjectMatchesDebtsModel(debt, expectedDebts);
 
       virtualUserId = singleDebt.user.id;
-      const virtualUser: UserInterface = await User.findOne({_id: new ObjectId(virtualUserId)});
+      const virtualUser: InstanceType<User> = await User.findOne({_id: new ObjectId(virtualUserId)});
 
       expect(virtualUser).toHaveProperty('virtual');
       expect(virtualUser.virtual).toBeTruthy();
@@ -553,14 +558,13 @@ describe('Debts (e2e)', () => {
         .post('/debts/multiple/' + multipleDebt.id + '/creation/accept')
         .set('Authorization', 'Bearer ' + user2.token)
         .expect(201)
-        .then(resp => {
-          const debt = resp.body;
+        .then(({body: debt}) => {
           const unchangedDebt = JSON.parse(JSON.stringify(multipleDebt));
           unchangedDebt.status = 'UNCHANGED';
           unchangedDebt.statusAcceptor = null;
           unchangedDebt.user = user1.user;
           delete unchangedDebt.moneyOperations;
-          checkIsObjectMatchesDebtsModel(debt, unchangedDebt);
+          checkIsObjectMatchesDebtsModel(debt, unchangedDebt, true);
         });
     });
 
@@ -569,8 +573,8 @@ describe('Debts (e2e)', () => {
         .post('/debts/multiple/' + multipleDebt.id + '/creation/accept')
         .set('Authorization', 'Bearer ' + user2.token)
         .expect(400)
-        .then(resp => {
-          expect(resp.body).toHaveProperty('error', 'Debts not found');
+        .then(({body}) => {
+          expect(body).toHaveProperty('error', 'Debts not found');
         });
     });
   });
@@ -584,7 +588,8 @@ describe('Debts (e2e)', () => {
       const {body} = await request(app.getHttpServer())
         .post('/debts/multiple')
         .send({userId: user2.user.id, currency: 'UAH'})
-        .set('Authorization', 'Bearer ' + user1.token);
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201);
 
       multipleDebt = body;
     });
@@ -727,11 +732,13 @@ describe('Debts (e2e)', () => {
         description: 'test'
       };
 
-      await request(app.getHttpServer())
+      const resp = await request(app.getHttpServer())
         .post('/operations')
         .send(operationPayload)
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201);
+
+      Logger.log(resp);
     });
 
     it('should return 401 error if token is invalid', () => {
@@ -1393,7 +1400,7 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    async function createConnectUserDebt(): Promise<DebtInterface> {
+    async function createConnectUserDebt(): Promise<DebtResponseDto> {
       const {body: debt} = await request(app.getHttpServer())
         .post('/debts/single')
         .send({userName: 'Valera new', currency: 'UAH'})
@@ -1412,7 +1419,7 @@ describe('Debts (e2e)', () => {
 
 
 
-  function checkIsObjectMatchesDebtsModel(object, debtsModel: DebtDto, checkKeys = true): void {
+  function checkIsObjectMatchesDebtsModel(object, debtsModel: DebtResponseDto, checkKeys = true): void {
     Object.keys(debtsModel).forEach(key => {
       if(checkKeys) {
         expect(object).toHaveProperty(key, debtsModel[key]);

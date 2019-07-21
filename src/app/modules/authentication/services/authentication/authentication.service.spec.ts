@@ -1,13 +1,10 @@
 import {Test} from '@nestjs/testing';
 import {PassportModule} from '@nestjs/passport';
-import {MongooseModule} from '@nestjs/mongoose';
-import {TestingModule} from '@nestjs/testing/testing-module';
 import {AuthenticationService} from './authentication.service';
 import {forwardRef} from '@nestjs/common';
 import {UsersModule} from '../../../users/users.module';
 import {AuthStrategy} from '../../strategies-list.enum';
 import {ConfigModule} from '../../../config/config.module';
-import {ConfigService} from '../../../config/services/config.service';
 import {LocalSignUpStrategy} from '../../strategies/local-sign-up.strategy';
 import {LocalLoginStrategy} from '../../strategies/local-login.strategy';
 import {FacebookLoginStrategy} from '../../strategies/facebook-login.strategy';
@@ -24,10 +21,7 @@ describe('AuthenticationService', () => {
       imports: [
         forwardRef(() => UsersModule),
         PassportModule.register({ defaultStrategy: AuthStrategy.JWT_STRATEGY, session: false }),
-        ConfigModule,
-        MongooseModule.forRootAsync({
-          useExisting: ConfigService
-        })
+        ConfigModule
       ],
       providers: [
         AuthenticationService,

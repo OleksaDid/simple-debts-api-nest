@@ -3,25 +3,26 @@ import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {AuthenticationHelper} from './helpers/authentication.helper';
 import {AppHelper} from './helpers/app.helper';
 import {Collection} from 'mongodb';
-import {DebtInterface} from '../src/app/modules/debts/models/debt.interface';
-import {OperationInterface} from '../src/app/modules/operations/models/operation.interface';
 import {DbHelper} from './helpers/db.helper';
 import {EnvField} from '../src/app/modules/config/models/env-field.enum';
 import {DebtsStatus} from '../src/app/modules/debts/models/debts-status.enum';
 import {DebtResponseDto} from '../src/app/modules/debts/models/debt-response.dto';
 import {CreateOperationDto} from '../src/app/modules/operations/models/create-operation.dto';
 import {OperationResponseDto} from '../src/app/modules/operations/models/operation-response.dto';
-import {INestApplication} from '@nestjs/common';
+import {INestApplication, Logger} from '@nestjs/common';
 import {validate} from 'class-validator';
 import {plainToClass} from 'class-transformer';
 import {OperationStatus} from '../src/app/modules/operations/models/operation-status.enum';
 import * as mongoose from "mongoose";
+import {InstanceType} from 'typegoose';
 
 const ObjectId = mongoose.Types.ObjectId;
 
 const credentials = require('./fixtures/debts-users');
 
 import * as dotenv from 'dotenv';
+import {Debt} from '../src/app/modules/debts/models/debt';
+import {Operation} from '../src/app/modules/operations/models/operation';
 dotenv.config({ path: __dirname + '/../config/test.env' });
 
 
@@ -31,8 +32,8 @@ describe('Operations (e2e)', () => {
   let user: AuthUser;
   let user2: AuthUser;
 
-  let Debts: Collection<DebtInterface>;
-  let Operations: Collection<OperationInterface>;
+  let Debts: Collection<Debt>;
+  let Operations: Collection<Operation>;
 
   let debt: DebtResponseDto;
   let singleDebt: DebtResponseDto;
@@ -40,11 +41,18 @@ describe('Operations (e2e)', () => {
   let operationPayload: CreateOperationDto;
   let operationPayloadSingle: CreateOperationDto;
 
-  let operation: OperationInterface;
-  let operationSingle: OperationInterface;
-  let moneyOperations: OperationInterface[] = [];
+  let operation: InstanceType<Operation>;
+  let operationSingle: InstanceType<Operation>;
 
   beforeAll(async () => {
+    const dbHelper = new DbHelper(process.env[EnvField.MONGODB_URI]);
+    await dbHelper.init();
+    Debts = dbHelper.Debts;
+    Operations = dbHelper.Operations;
+
+    await Debts.deleteMany({});
+    await Operations.deleteMany({});
+
     app = await AppHelper.getTestApp();
 
     authHelper = new AuthenticationHelper(app);
@@ -56,14 +64,6 @@ describe('Operations (e2e)', () => {
       user = _user1;
       user2 = _user2;
     });
-
-    const dbHelper = new DbHelper(process.env[EnvField.MONGODB_URI]);
-    await dbHelper.init();
-    Debts = dbHelper.Debts;
-    Operations = dbHelper.Operations;
-
-    Debts.drop();
-    Operations.drop();
 
     debt = (await request(app.getHttpServer())
       .post('/debts/multiple')
@@ -198,18 +198,17 @@ describe('Operations (e2e)', () => {
     });
 
     it('creates new operation in db', async () => {
-      const {body: op} = await request(app.getHttpServer())
+      const resp = await request(app.getHttpServer())
         .post('/operations')
         .send(Object.assign({}, operationPayload))
         .set('Authorization', `Bearer ${user.token}`)
         .expect(201);
 
-      const operations = await Operations.find().toArray();
+      const operations = await Operations.find().toArray() as InstanceType<Operation>[];
 
       expect(operations).toBeTruthy();
       expect(Array.isArray(operations)).toBeTruthy();
       expect(operations.length).toBe(1);
-      moneyOperations.push(operations[0]);
       operation = operations[0];
       operation.id = operation._id.toString();
     });
@@ -301,7 +300,7 @@ describe('Operations (e2e)', () => {
         .send(Object.assign({}, operationPayloadSingle))
         .set('Authorization', `Bearer ${user.token}`)
         .then(({body: _debt}) => {
-          expect(_debt).toHaveProperty('summary', operationPayload.moneyAmount * 2);
+          expect(_debt).toHaveProperty('summary', operationPayloadSingle.moneyAmount * 2);
           expect(_debt).toHaveProperty('moneyReceiver', operationPayloadSingle.moneyReceiver);
         });
     });

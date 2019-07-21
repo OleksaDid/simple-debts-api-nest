@@ -6,19 +6,19 @@ import {OperationsModule} from './modules/operations/operations.module';
 import {HealthModule} from './modules/health/health.module';
 import {ConfigModule} from './modules/config/config.module';
 import {ConfigService} from './modules/config/services/config.service';
-import {MongooseModule} from '@nestjs/mongoose';
+import {TypegooseModule} from 'nestjs-typegoose';
 
 @Module({
   imports: [
+    TypegooseModule.forRootAsync({
+      useExisting: ConfigService
+    }),
     ConfigModule,
     AuthenticationModule,
     UsersModule,
-    DebtsModule,
     OperationsModule,
+    DebtsModule,
     HealthModule,
-    MongooseModule.forRootAsync({
-      useExisting: ConfigService
-    }),
   ]
 })
 export class ApplicationModule {}

@@ -1,6 +1,5 @@
 import {Test} from '@nestjs/testing';
 import {PassportModule} from '@nestjs/passport';
-import {MongooseModule} from '@nestjs/mongoose';
 import {LoginController} from './login.controller';
 import {forwardRef} from '@nestjs/common';
 import {UsersModule} from '../../../users/users.module';
@@ -13,7 +12,6 @@ import {RefreshTokenStrategy} from '../../strategies/refresh-token.strategy';
 import {SignUpController} from '../sign-up/sign-up.controller';
 import {AuthStrategy} from '../../strategies-list.enum';
 import {ConfigModule} from '../../../config/config.module';
-import {ConfigService} from '../../../config/services/config.service';
 
 describe('LoginController', () => {
   let loginController: LoginController;
@@ -23,10 +21,7 @@ describe('LoginController', () => {
       imports: [
         forwardRef(() => UsersModule),
         PassportModule.register({ defaultStrategy: AuthStrategy.JWT_STRATEGY, session: false }),
-        ConfigModule,
-        MongooseModule.forRootAsync({
-          useExisting: ConfigService
-        })
+        ConfigModule
       ],
       providers: [
         AuthenticationService,

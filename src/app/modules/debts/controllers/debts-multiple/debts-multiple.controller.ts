@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, HttpException, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
+import {Body, Controller, HttpException, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
 import {AuthGuard} from '@nestjs/passport';
 import {ApiBearerAuth, ApiResponse, ApiUseTags} from '@nestjs/swagger';
 import {DebtResponseDto} from '../../models/debt-response.dto';

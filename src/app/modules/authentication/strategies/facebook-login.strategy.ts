@@ -2,16 +2,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import * as FacebookTokenStrategy from 'passport-facebook-token';
 import {ExtractJwt, Strategy} from 'passport-jwt';
 import {Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
-import {UserInterface} from '../../users/models/user.interface';
-import {Model} from 'mongoose';
 import {AuthenticationService} from '../services/authentication/authentication.service';
 import {ImagesHelper} from '../../../common/classes/images-helper';
 import {ConfigService} from '../../config/services/config.service';
 import {EnvField} from '../../config/models/env-field.enum';
-import {UserCollectionRef} from '../../users/models/user-collection-ref';
 import {AuthStrategy} from '../strategies-list.enum';
 import {AuthUser} from '../models/auth-user';
+import {InjectModel} from 'nestjs-typegoose';
+import {ModelType} from 'typegoose';
+import {User} from '../../users/models/user';
 
 
 @Injectable()
@@ -20,7 +19,7 @@ export class FacebookLoginStrategy extends PassportStrategy(FacebookTokenStrateg
     constructor(
         private readonly _authService: AuthenticationService,
         private readonly _config: ConfigService,
-        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
+        @InjectModel(User) private readonly User: ModelType<User>
     ) {
         super({
             clientID: _config.get(EnvField.FACEBOOK_ID),

@@ -1,28 +1,26 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
+import {ModelType, InstanceType} from 'typegoose';
 import {Id} from '../../../common/types/types';
-import {Model, Types} from 'mongoose';
-import {OperationInterface} from '../models/operation.interface';
-import {DebtInterface} from '../../debts/models/debt.interface';
 import {DebtsStatus} from '../../debts/models/debts-status.enum';
-import {OperationDto} from '../models/operation.dto';
 import {DebtsAccountType} from '../../debts/models/debts-account-type.enum';
 import {OperationStatus} from '../models/operation-status.enum';
-import {OperationsCollectionRef} from '../models/operation-collection-ref';
-import {DebtsCollectionRef} from '../../debts/models/debts-collection-ref';
+import {Debt} from '../../debts/models/debt';
+import {Operation} from '../models/operation';
+import {InjectModel} from 'nestjs-typegoose';
+import {ObjectId} from '../../../common/classes/object-id';
 
 @Injectable()
 export class OperationsService {
 
 
   constructor(
-      @InjectModel(OperationsCollectionRef) private readonly Operation: Model<OperationInterface>,
-      @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
+      @InjectModel(Operation) private readonly Operation: ModelType<Operation>,
+      @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
   ) {}
 
 
-  async createOperation(userId: Id, debtsId: Id, moneyAmount: number, moneyReceiver: Id, description: string): Promise<DebtInterface> {
-    let debt: DebtInterface;
+  async createOperation(userId: Id, debtsId: Id, moneyAmount: number, moneyReceiver: Id, description: string): Promise<InstanceType<Debt>> {
+    let debt: InstanceType<Debt>;
 
     try {
       debt = await this.Debts
@@ -42,29 +40,37 @@ export class OperationsService {
     }
 
       const statusAcceptor = debt.users.find(user => user.toString() != userId);
-      const newOperation = new OperationDto(debtsId, moneyAmount, moneyReceiver, description, statusAcceptor, debt.type);
+
+      const newOperation = new this.Operation({
+        debtsId: debtsId as any,
+        moneyAmount,
+        moneyReceiver: moneyReceiver as any,
+        description,
+        status: debt.type === DebtsAccountType.SINGLE_USER ? OperationStatus.UNCHANGED : OperationStatus.CREATION_AWAITING,
+        statusAcceptor: debt.type === DebtsAccountType.SINGLE_USER ? null : statusAcceptor,
+        date: new Date()
+      });
 
       if(debt.statusAcceptor && debt.statusAcceptor.toString() === userId) {
           throw new HttpException('Cannot modify debts that need acceptance', HttpStatus.BAD_REQUEST);
       }
 
-      const operation = await this.Operation.create(newOperation);
-
+      await newOperation.save();
 
       if(debt.type !== DebtsAccountType.SINGLE_USER) {
           debt.statusAcceptor = debt.users.find(user => user.toString() != userId);
           debt.status = DebtsStatus.CHANGE_AWAITING;
       }
 
-      debt.moneyOperations.push(operation.id);
+      debt.moneyOperations.push(newOperation.id);
 
       await debt.calculateSummary();
 
       return debt;
   };
 
-  async deleteOperation(userId: Id, operationId: Id): Promise<DebtInterface> {
-    let updatedDebt: DebtInterface;
+  async deleteOperation(userId: Id, operationId: Id): Promise<InstanceType<Debt>> {
+    let updatedDebt: InstanceType<Debt>;
 
     try {
       updatedDebt = await this.Debts
@@ -97,13 +103,13 @@ export class OperationsService {
     return updatedDebt;
   };
 
-  async acceptOperation(userId: Id, operationId: Id): Promise<DebtInterface> {
+  async acceptOperation(userId: Id, operationId: Id): Promise<InstanceType<Debt>> {
 
       const operation = await this.Operation
           .findOneAndUpdate(
               {
                   _id: operationId,
-                  statusAcceptor: new Types.ObjectId(userId),
+                  statusAcceptor: userId,
                   status: OperationStatus.CREATION_AWAITING
               },
               { status: OperationStatus.UNCHANGED, statusAcceptor: null }
@@ -121,7 +127,7 @@ export class OperationsService {
               select: 'status',
           });
 
-      if(debt.moneyOperations.every(operation => operation.status !== OperationStatus.CREATION_AWAITING)) {
+      if(debt.moneyOperations.every(operation =>  (operation as Operation).status !== OperationStatus.CREATION_AWAITING)) {
           debt.status = DebtsStatus.UNCHANGED;
           debt.statusAcceptor = null;
       }
@@ -131,7 +137,7 @@ export class OperationsService {
       return debt;
   };
 
-  async declineOperation(userId: Id, operationId: Id) {
+  async declineOperation(userId: Id, operationId: Id): Promise<InstanceType<Debt>> {
       const operation = await this.Operation.findOneAndUpdate(
           {_id: operationId, status: OperationStatus.CREATION_AWAITING},
           {status: OperationStatus.CANCELLED, cancelledBy: userId}
@@ -141,7 +147,13 @@ export class OperationsService {
           throw new HttpException('Operation is not found', HttpStatus.BAD_REQUEST);
       }
 
-      const debt = await this.Debts.findOne({_id: operation.debtsId, users: {$in: [userId]}});
+      const debt: InstanceType<Debt> = await this.Debts
+        .findOne({_id: operation.debtsId, users: {$in: [userId]}})
+        .populate({
+          path: 'moneyOperations',
+          select: 'status'
+        })
+        .exec();
 
       if(!debt) {
           throw new HttpException('You don\'t have permissions to delete this operation', HttpStatus.BAD_REQUEST);
@@ -149,8 +161,8 @@ export class OperationsService {
 
       if(
           debt.moneyOperations
-              .filter(operation => operation.id.toString() !== operationId)
-              .every(operation => operation.status !== OperationStatus.CREATION_AWAITING)
+              .filter(operation => (operation as InstanceType<Operation>)._id.toString() !== operationId)
+              .every(operation => (operation as InstanceType<Operation>).status !== OperationStatus.CREATION_AWAITING)
       ) {
           debt.status = DebtsStatus.UNCHANGED;
           debt.statusAcceptor = null;

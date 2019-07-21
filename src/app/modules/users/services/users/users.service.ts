@@ -1,23 +1,21 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
+import {InjectModel} from 'nestjs-typegoose';
 import {Id} from '../../../../common/types/types';
 import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
-import {DebtInterface} from '../../../debts/models/debt.interface';
-import {Model} from 'mongoose';
-import {UserInterface} from '../../models/user.interface';
 import {IMAGES_FOLDER_DIR, IMAGES_FOLDER_FILE_PATTERN} from '../../../../common/constants/constants';
-import {DebtsCollectionRef} from '../../../debts/models/debts-collection-ref';
-import {UserCollectionRef} from '../../models/user-collection-ref';
 import {FirebaseService} from '../../../firebase/services/firebase.service';
 import * as Identicon from 'identicon.js';
 import * as fs from 'fs';
+import {ModelType} from 'typegoose';
+import {Debt} from '../../../debts/models/debt';
+import {User} from '../../models/user';
 
 @Injectable()
 export class UsersService {
 
   constructor(
-    @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
-    @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
+    @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
+    @InjectModel(User) private readonly User: ModelType<User>,
     private _firebaseService: FirebaseService
   ) {}
 

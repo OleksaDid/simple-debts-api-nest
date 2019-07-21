@@ -1,1 +1,1 @@
-export const DebtsCollectionRef = 'Debts';
+export const DebtsCollectionRef = 'debts';
