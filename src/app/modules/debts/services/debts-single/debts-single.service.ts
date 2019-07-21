@@ -65,18 +65,18 @@ export class DebtsSingleService {
   }
 
   async deleteSingleDebt(debt: DebtInterface, userId: Id): Promise<void> {
-    const virtualUserId = debt.users.find(user => user['_id'].toString() != userId);
+    const virtualUser = debt.users.find(user => user['_id'].toString() != userId);
 
     await debt.remove();
 
     const debtsWithVirtualUser = await this.Debts.find({
       users: {
-        $in: [virtualUserId]
+        $in: [virtualUser['_id']]
       }
     });
 
     if(!debtsWithVirtualUser || debtsWithVirtualUser.length === 0) {
-      await this._usersService.deleteUser(virtualUserId);
+      await this._usersService.deleteUser(virtualUser['_id']);
     }
   }
 
