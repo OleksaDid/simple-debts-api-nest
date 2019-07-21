@@ -1,5 +1,5 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {ModelType, InstanceType} from 'typegoose';
+import {InstanceType, ModelType} from 'typegoose';
 import {Id} from '../../../common/types/types';
 import {DebtsStatus} from '../../debts/models/debts-status.enum';
 import {DebtsAccountType} from '../../debts/models/debts-account-type.enum';
@@ -7,7 +7,6 @@ import {OperationStatus} from '../models/operation-status.enum';
 import {Debt} from '../../debts/models/debt';
 import {Operation} from '../models/operation';
 import {InjectModel} from 'nestjs-typegoose';
-import {ObjectId} from '../../../common/classes/object-id';
 import {DebtsHelper} from '../../debts/models/debts.helper';
 
 @Injectable()
@@ -139,38 +138,43 @@ export class OperationsService {
   };
 
   async declineOperation(userId: Id, operationId: Id): Promise<InstanceType<Debt>> {
-      const operation = await this.Operation.findOneAndUpdate(
-          {_id: operationId, status: OperationStatus.CREATION_AWAITING},
-          {status: OperationStatus.CANCELLED, cancelledBy: userId}
-        );
+    const operation = await this.Operation.findOne(
+      {_id: operationId, status: OperationStatus.CREATION_AWAITING}
+    ).exec();
 
-      if(!operation) {
-          throw new HttpException('Operation is not found', HttpStatus.BAD_REQUEST);
-      }
+    if(!operation) {
+      throw new HttpException('Operation is not found', HttpStatus.BAD_REQUEST);
+    }
 
-      const debt: InstanceType<Debt> = await this.Debts
-        .findOne({_id: operation.debtsId, users: {$in: [userId]}})
-        .populate({
-          path: 'moneyOperations',
-          select: 'status'
-        })
-        .exec();
+    const debt: InstanceType<Debt> = await this.Debts
+      .findOne({_id: operation.debtsId, users: {$in: [userId]}})
+      .populate({
+        path: 'moneyOperations',
+        select: 'status'
+      })
+      .exec();
 
-      if(!debt) {
-          throw new HttpException('You don\'t have permissions to delete this operation', HttpStatus.BAD_REQUEST);
-      }
+    if(!debt) {
+        throw new HttpException('You don\'t have permissions to delete this operation', HttpStatus.BAD_REQUEST);
+    }
 
-      if(
-          debt.moneyOperations
-              .filter(operation => (operation as InstanceType<Operation>)._id.toString() !== operationId)
-              .every(operation => (operation as InstanceType<Operation>).status !== OperationStatus.CREATION_AWAITING)
-      ) {
-          debt.status = DebtsStatus.UNCHANGED;
-          debt.statusAcceptor = null;
-      }
+    operation.status = OperationStatus.CANCELLED;
+    operation.statusAcceptor = null;
+    operation.cancelledBy = userId as any;
 
-      await debt.calculateSummary();
+    await operation.save();
 
-      return debt;
+    if(
+        debt.moneyOperations
+            .filter(operation => (operation as InstanceType<Operation>)._id.toString() !== operationId)
+            .every(operation => (operation as InstanceType<Operation>).status !== OperationStatus.CREATION_AWAITING)
+    ) {
+        debt.status = DebtsStatus.UNCHANGED;
+        debt.statusAcceptor = null;
+    }
+
+    await debt.calculateSummary();
+
+    return debt;
   };
 }

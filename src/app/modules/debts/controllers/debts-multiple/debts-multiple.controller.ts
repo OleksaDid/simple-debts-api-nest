@@ -90,4 +90,24 @@ export class DebtsMultipleController {
 
       return this.debtsService.getAllUserDebts(user.id);
     }
+
+
+  @ApiResponse({
+    status: 201,
+    type: DebtResponseDto
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Post(':id/accept_all_operations')
+  async acceptAllOperations(
+      @Param() params: IdParamDto,
+      @ReqUser() user: SendUserDto
+  ) {
+      await this.debtsMultipleService.acceptAllDebtOperations(user.id, params.id);
+
+      return this.debtsService.getDebtsById(user.id, params.id);
+    }
 }

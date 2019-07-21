@@ -18,6 +18,8 @@ import {User} from '../src/app/modules/users/models/user';
 import {InstanceType} from 'typegoose';
 import * as dotenv from 'dotenv';
 import {DebtResponseDto} from '../src/app/modules/debts/models/debt-response.dto';
+import {OperationStatus} from '../src/app/modules/operations/models/operation-status.enum';
+import {OperationResponseDto} from '../src/app/modules/operations/models/operation-response.dto';
 
 const users = require('./fixtures/debts-users');
 const ObjectId = mongoose.Types.ObjectId;
@@ -737,8 +739,6 @@ describe('Debts (e2e)', () => {
         .send(operationPayload)
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201);
-
-      Logger.log(resp);
     });
 
     it('should return 401 error if token is invalid', () => {
@@ -1415,6 +1415,173 @@ describe('Debts (e2e)', () => {
 
       return debt2;
     }
+  });
+
+
+  describe('POST /debts/multiple/:id/accept_all_operations', () => {
+    let operationPayload;
+
+
+    beforeAll(async () => {
+      await Debts.deleteMany({});
+
+      const {body} = await request(app.getHttpServer())
+        .post('/debts/multiple')
+        .send({userId: user2.user.id, currency: 'UAH'})
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201);
+
+      multipleDebt = body;
+
+      operationPayload = {
+        debtsId: multipleDebt.id,
+        moneyAmount: 300,
+        moneyReceiver: user1.user.id,
+        description: 'test'
+      };
+
+      await request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/creation/accept`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post('/operations')
+        .send(operationPayload)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201);
+
+      multipleDebt = (await request(app.getHttpServer())
+        .post('/operations')
+        .send(operationPayload)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201))
+        .body;
+    });
+
+    it('should return 401 error if token is invalid', () => {
+      return authHelper.testAuthorizationGuard(
+        request(app.getHttpServer()).post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+      );
+    });
+
+    it('should return 400 or 404 if no param is set', () => {
+      const promises = [];
+      const params = [
+        '',
+        '/',
+        ' ',
+        null,
+        undefined
+      ];
+
+      params.forEach(param => {
+        promises.push(request(app.getHttpServer()).post(`/debts/multiple/${param}/accept_all_operations`).set('Authorization', 'Bearer ' + user1.token));
+      });
+
+      return Promise.all(promises).then(responses => {
+        responses.forEach(({statusCode}) => {
+          expect(statusCode).toBeGreaterThanOrEqual(400);
+          expect(statusCode).toBeLessThanOrEqual(404);
+        });
+      });
+    });
+
+    it('should return 400 if invalid param is set', () => {
+
+      return request(app.getHttpServer())
+        .post('/debts/multiple/' + 'y34ygv4h3' + '/accept_all_operations')
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(400)
+        .then(({body}) => {
+          expect(body).toHaveProperty('error');
+        });
+    });
+
+    it('should throw an error if non status acceptor user will try to accept', async () => {
+      return request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(400)
+        .then(({body}) => {
+          expect(body).toHaveProperty('error');
+        })
+    });
+
+    it('should accept all debt operations and return debt entity', async () => {
+      expect(multipleDebt.summary).toBe(0);
+      expect(multipleDebt.status).toBe(DebtsStatus.CHANGE_AWAITING);
+      expect(multipleDebt.statusAcceptor).toBe(user2.user.id);
+
+      const acceptedDebt: DebtResponseDto = (await request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201))
+        .body;
+
+      checkIsObjectMatchesDebtsModel(acceptedDebt, multipleDebt, false);
+
+      expect(acceptedDebt.summary).toBe(operationPayload.moneyAmount * 2);
+      expect(acceptedDebt.statusAcceptor).toBe(null);
+      expect(acceptedDebt.status).toBe(DebtsStatus.UNCHANGED);
+      expect(acceptedDebt.moneyOperations.every(operation => operation.statusAcceptor === null)).toBeTruthy();
+      expect(acceptedDebt.moneyOperations.every(operation => operation.status === OperationStatus.UNCHANGED)).toBeTruthy();
+
+      multipleDebt = acceptedDebt;
+    });
+
+    it('shouldn\'t accept cancelled operations', async () => {
+      await request(app.getHttpServer())
+        .post('/operations')
+        .send(operationPayload)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201);
+
+      const debt = (await request(app.getHttpServer())
+        .post('/operations')
+        .send(operationPayload)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201))
+        .body as DebtResponseDto;
+
+      const operation: OperationResponseDto = debt.moneyOperations.find(op => op.status === OperationStatus.CREATION_AWAITING);
+
+      await request(app.getHttpServer())
+        .post(`/operations/${operation.id}/creation/decline`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201);
+
+      const acceptedDebt: DebtResponseDto = (await request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201))
+        .body;
+
+      checkIsObjectMatchesDebtsModel(acceptedDebt, multipleDebt, false);
+
+      expect(acceptedDebt.summary).toBe(operationPayload.moneyAmount * 3);
+      expect(acceptedDebt.statusAcceptor).toBe(null);
+      expect(acceptedDebt.status).toBe(DebtsStatus.UNCHANGED);
+      expect(acceptedDebt.moneyOperations.every(operation => operation.statusAcceptor === null)).toBeTruthy();
+      expect(acceptedDebt.moneyOperations.some(operation => operation.status === OperationStatus.UNCHANGED)).toBeTruthy();
+      expect(acceptedDebt.moneyOperations.some(operation => operation.status === OperationStatus.CANCELLED)).toBeTruthy();
+    });
+
+    it('should return debt id there are no operatiosn to accept', async () => {
+
+      const debt = (await request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201))
+        .body;
+
+      expect(debt.summary).toBe(operationPayload.moneyAmount * 3);
+      expect(debt.statusAcceptor).toBe(null);
+      expect(debt.status).toBe(DebtsStatus.UNCHANGED);
+      expect(debt.moneyOperations.every(operation => operation.statusAcceptor === null)).toBeTruthy();
+      expect(debt.moneyOperations.some(operation => operation.status === OperationStatus.UNCHANGED)).toBeTruthy();
+      expect(debt.moneyOperations.some(operation => operation.status === OperationStatus.CANCELLED)).toBeTruthy();
+    });
   });
 
 

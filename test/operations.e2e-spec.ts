@@ -544,7 +544,7 @@ describe('Operations (e2e)', () => {
         .then(({body}) => expect(body).toHaveProperty('error'));
     });
 
-    it('should return debts by id, set status to \'UNCHANGED\' and set operations status to CANCELLED', () => {
+    it('should return debts by id, set status to \'UNCHANGED\' and set operations status to CANCELLED, statusAcceptor to null and CancelledBy to userId', () => {
 
       return request(app.getHttpServer())
         .post(`/operations/${newOperation.id}/creation/decline`)
@@ -558,6 +558,8 @@ describe('Operations (e2e)', () => {
 
           const operation = await Operations.findOne({_id: new ObjectId(newOperation.id)});
           expect(operation.status).toBe(OperationStatus.CANCELLED);
+          expect(operation.statusAcceptor).toBe(null);
+          expect(operation.cancelledBy.toString()).toBe(user2.user.id.toString());
         });
     });
 
