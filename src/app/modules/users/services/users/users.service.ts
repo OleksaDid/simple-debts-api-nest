@@ -1,37 +1,27 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
+import {InjectModel} from 'nestjs-typegoose';
 import {Id} from '../../../../common/types/types';
 import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
-import {DebtInterface} from '../../../debts/models/debt.interface';
-import {Model} from 'mongoose';
-import {UserInterface} from '../../models/user.interface';
 import {IMAGES_FOLDER_DIR, IMAGES_FOLDER_FILE_PATTERN} from '../../../../common/constants/constants';
-import {DebtsCollectionRef} from '../../../debts/models/debts-collection-ref';
-import {UserCollectionRef} from '../../models/user-collection-ref';
-import {FirebaseService} from '../../../firebase/services/firebase.service';
 import * as Identicon from 'identicon.js';
 import * as fs from 'fs';
+import {ModelType} from 'typegoose';
+import {Debt} from '../../../debts/models/debt';
+import {User} from '../../models/user';
+import {StorageService} from '../../../firebase/services/storage.service';
 
 @Injectable()
 export class UsersService {
 
   constructor(
-    @InjectModel(DebtsCollectionRef) private readonly Debts: Model<DebtInterface>,
-    @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>,
-    private _firebaseService: FirebaseService
+    @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
+    @InjectModel(User) private readonly User: ModelType<User>,
+    private _storageService: StorageService
   ) {}
 
 
 
   async getUsersByName(name: string, userId: Id): Promise<SendUserDto[]> {
-    const debts = await this.Debts
-      .find({'users': {'$all': [userId]}})
-      .populate({ path: 'users', select: 'name picture'})
-      .exec();
-
-    const usedUserIds = debts
-      .map(debt => debt.users.find(user => user['id'].toString() != userId)['id']);
-
     const users = await this.User
       .find({
         name: new RegExp(name, 'i'),
@@ -41,7 +31,7 @@ export class UsersService {
       .exec();
 
     return users
-      .filter(user => user.id != userId && !usedUserIds.find(id => user.id == id))
+      .filter(user => user.id != userId)
       .map(user => new SendUserDto(user.id, user.name, user.picture));
   }
 
@@ -88,14 +78,23 @@ export class UsersService {
     return this._uploadUserImage(filePath, fileName, protocolAndHost);
   }
 
+  async addPushToken(userId: Id, token: string): Promise<void> {
+    await this.User.findByIdAndUpdate(
+      userId,
+      {
+        $addToSet: {pushTokens: token}
+      }
+    )
+  }
+
 
 
   private async _uploadUserImage(filePath: string, fileName: string, protocolAndHost: string): Promise<string> {
-    return this._firebaseService.uploadFile(filePath, fileName, `${IMAGES_FOLDER_DIR}/${fileName}`, protocolAndHost);
+    return this._storageService.uploadFile(filePath, fileName, `${IMAGES_FOLDER_DIR}/${fileName}`, protocolAndHost);
   }
 
   private async _deleteUserFile(fileUrl: string): Promise<void> {
     const imageName = fileUrl.match(IMAGES_FOLDER_FILE_PATTERN)[0];
-    return this._firebaseService.deleteFile(imageName);
+    return this._storageService.deleteFile(imageName);
   }
 }

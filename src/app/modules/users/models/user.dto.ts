@@ -1,5 +1,6 @@
 import {IsBoolean, IsMongoId, IsNotEmpty, IsOptional, IsString, IsUrl, Length} from 'class-validator';
 import {ApiModelProperty} from '@nestjs/swagger';
+import {User} from './user';
 
 export class SendUserDto {
   @ApiModelProperty({

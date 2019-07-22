@@ -1,13 +1,16 @@
 import {Db, MongoClient, Collection} from 'mongodb';
-import {DebtInterface} from '../../src/app/modules/debts/models/debt.interface';
-import {UserInterface} from '../../src/app/modules/users/models/user.interface';
-import {OperationInterface} from '../../src/app/modules/operations/models/operation.interface';
+import {Debt} from '../../src/app/modules/debts/models/debt';
+import {Operation} from '../../src/app/modules/operations/models/operation';
+import {User} from '../../src/app/modules/users/models/user';
+import {DebtsCollectionRef} from '../../src/app/modules/debts/models/debts-collection-ref';
+import {UserCollectionRef} from '../../src/app/modules/users/models/user-collection-ref';
+import {OperationsCollectionRef} from '../../src/app/modules/operations/models/operation-collection-ref';
 
 export class DbHelper {
   private _db: Db;
-  private _Debts: Collection<DebtInterface>;
-  private _Users: Collection<UserInterface>;
-  private _Operations: Collection<OperationInterface>;
+  private _Debts: Collection<Debt>;
+  private _Users: Collection<User>;
+  private _Operations: Collection<Operation>;
 
   private readonly _dbUrl: string;
 
@@ -20,9 +23,9 @@ export class DbHelper {
   async init(): Promise<void>{
     this._db = await MongoClient.connect(this._dbUrl);
 
-    this._Debts = this._db.collection('debts');
-    this._Users = this._db.collection('users');
-    this._Operations = this._db.collection('moneyoperations');
+    this._Debts = this._db.collection(DebtsCollectionRef);
+    this._Users = this._db.collection(UserCollectionRef);
+    this._Operations = this._db.collection(OperationsCollectionRef);
   }
 
 
@@ -30,15 +33,15 @@ export class DbHelper {
     return this._db;
   }
 
-  get Debts(): Collection<DebtInterface> {
+  get Debts(): Collection<Debt> {
     return this._Debts;
   }
 
-  get Users(): Collection<UserInterface> {
+  get Users(): Collection<User> {
     return this._Users;
   }
 
-  get Operations(): Collection<OperationInterface> {
+  get Operations(): Collection<Operation> {
     return this._Operations;
   }
 

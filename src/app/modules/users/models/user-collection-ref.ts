@@ -1,1 +1,1 @@
-export const UserCollectionRef = 'User';
+export const UserCollectionRef = 'users';

@@ -16,6 +16,8 @@ import {UserNameDto} from '../../models/user-name.dto';
 import {ApiBearerAuth, ApiResponse, ApiUseTags, ApiImplicitFile, ApiConsumes} from '@nestjs/swagger';
 import {FileInterceptor} from '@nestjs/platform-express';
 import {Request} from 'express';
+import {RequestHelper} from '../../../../common/classes/request-helper';
+import {UserTokenDto} from '../../models/user-token.dto';
 
 
 @ApiBearerAuth()
@@ -48,8 +50,6 @@ export class UsersController {
   }
 
 
-
-
   @ApiResponse({
       status: 200,
       type: SendUserDto
@@ -69,7 +69,25 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
     @ReqUser() user: SendUserDto
   ) {
-      return this.usersService.updateUserData(user, userNameDto, file, `${req.protocol}/${req.hostname}`);
+      return this.usersService.updateUserData(user, userNameDto, file, RequestHelper.getFormattedHostAndProtocol(req));
+  }
+
+
+
+  @ApiResponse({
+    status: 201
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Post('push_tokens')
+  addDeviceToken(
+    @Body() userTokenDto: UserTokenDto,
+    @ReqUser() user: SendUserDto
+  ) {
+    return this.usersService.addPushToken(user.id, userTokenDto.token);
   }
 
 }

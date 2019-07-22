@@ -2,13 +2,12 @@ import * as LocalStrategy from 'passport-local';
 import {PassportStrategy} from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
-import {UserInterface} from "../../users/models/user.interface";
-import {Model} from "mongoose";
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {AuthStrategy} from "../strategies-list.enum";
-import {UserCollectionRef} from '../../users/models/user-collection-ref';
 import {AuthUser} from '../models/auth-user';
+import {InjectModel} from 'nestjs-typegoose';
+import {ModelType} from 'typegoose';
+import {User} from '../../users/models/user';
 
 
 @Injectable()
@@ -16,7 +15,7 @@ export class LocalLoginStrategy extends PassportStrategy(LocalStrategy, AuthStra
 
   constructor(
     private readonly authService: AuthenticationService,
-    @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
+    @InjectModel(User) private readonly User: ModelType<User>
   ) {
     super({
       usernameField : 'email',
@@ -38,7 +37,7 @@ export class LocalLoginStrategy extends PassportStrategy(LocalStrategy, AuthStra
     }
 
     // if the user is found but the password is wrong
-    if (!user.validPassword(password)) {
+    if (!user.validatePassword(password)) {
       throw new HttpException('Wrong password', HttpStatus.BAD_REQUEST);
     }
 

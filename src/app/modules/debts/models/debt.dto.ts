@@ -1,5 +1,4 @@
 import {Id} from "../../../common/types/types";
-import {OperationInterface} from "../../operations/models/operation.interface";
 import {
   ArrayMaxSize, ArrayMinSize, ArrayUnique, IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsPositive,
   IsString,
@@ -9,6 +8,8 @@ import {DebtsAccountType} from './debts-account-type.enum';
 import {DebtsStatus} from './debts-status.enum';
 import {DebtResponseDto} from './debt-response.dto';
 import {ApiModelProperty} from '@nestjs/swagger';
+import {Operation} from '../../operations/models/operation';
+import {InstanceType} from 'typegoose';
 
 export class DebtDto {
   @IsNotEmpty()
@@ -45,7 +46,7 @@ export class DebtDto {
 
   @IsArray()
   @ArrayUnique()
-  moneyOperations: OperationInterface[];
+  moneyOperations: InstanceType<Operation>[];
 
   constructor(creatorId: Id, secondUserId: Id, type: DebtsAccountType, currency: string) {
     this.users = [creatorId, secondUserId];

@@ -2,6 +2,11 @@ import * as request from 'supertest';
 import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {AuthenticationHelper} from './helpers/authentication.helper';
 import {AppHelper} from './helpers/app.helper';
+import {Collection} from 'mongodb';
+import {DbHelper} from './helpers/db.helper';
+import {EnvField} from '../src/app/modules/config/models/env-field.enum';
+import * as mongoose from "mongoose";
+import {User} from '../src/app/modules/users/models/user';
 
 const credentials = require('./fixtures/test-user');
 let user: AuthUser;
@@ -9,10 +14,13 @@ let user: AuthUser;
 const Chance = require('chance');
 const chance = new Chance();
 
+const ObjectId = mongoose.Types.ObjectId;
+
 
 describe('Users (e2e)', () => {
   let app;
   let authHelper: AuthenticationHelper;
+  let Users: Collection<User>;
 
   beforeEach(async () => {
     app = await AppHelper.getTestApp();
@@ -20,6 +28,10 @@ describe('Users (e2e)', () => {
     authHelper = new AuthenticationHelper(app);
 
     user = await authHelper.authenticateUser(credentials);
+
+    const dbHelper = new DbHelper(process.env[EnvField.MONGODB_URI]);
+    await dbHelper.init();
+    Users = dbHelper.Users;
   });
 
 
@@ -115,11 +127,11 @@ describe('Users (e2e)', () => {
         .set('Authorization', 'Bearer ' + user.token)
         .send(updateData)
         .expect(201)
-        .then(response => {
-          expect(response.body).toHaveProperty('name', updateData.name);
+        .then(({body}) => {
+          expect(body).toHaveProperty('name', updateData.name);
 
-          expect(response.body).toHaveProperty('picture', user.user.picture);
-          expect(response.body).toHaveProperty('id', user.user.id);
+          expect(body).toHaveProperty('picture', user.user.picture);
+          expect(body).toHaveProperty('id', user.user.id);
         });
     });
 
@@ -131,13 +143,70 @@ describe('Users (e2e)', () => {
         .attach('image', __dirname + '/files/avatar.png')
         .field('name', updateData.name)
         .expect(201)
-        .then(response => {
-          expect(response.body).toHaveProperty('name', updateData.name);
+        .then(({body}) => {
+          expect(body).toHaveProperty('name', updateData.name);
 
-          expect(response.body).toHaveProperty('picture');
-          expect(response.body.picture).not.toBe(user.user.picture);
+          expect(body).toHaveProperty('picture');
+          expect(body.picture).not.toBe(user.user.picture);
 
-          expect(response.body).toHaveProperty('id', user.user.id);
+          expect(body).toHaveProperty('id', user.user.id);
+        });
+    });
+  });
+
+  describe('POST /users/push_tokens', () => {
+
+    it('should add token to tokens array in user object and return 201', async () => {
+      const token = 'kjnbhgvf56r76879';
+
+      await request(app.getHttpServer())
+        .post('/users/push_tokens')
+        .send({token})
+        .set('Authorization', 'Bearer ' + user.token)
+        .expect(201);
+
+      const {pushTokens} = await Users.findOne({_id: new ObjectId(user.user.id)});
+
+      expect(Array.isArray(pushTokens)).toBeTruthy();
+      expect(pushTokens.includes(token)).toBeTruthy();
+      expect(pushTokens).toHaveLength(1)
+    });
+
+    it('should return 201 if token already exists', async () => {
+      const token = 'kjnbhgvf56r76879';
+
+      await request(app.getHttpServer())
+        .post('/users/push_tokens')
+        .send({token})
+        .set('Authorization', 'Bearer ' + user.token)
+        .expect(201);
+
+      const {pushTokens} = await Users.findOne({_id: new ObjectId(user.user.id)});
+
+      expect(Array.isArray(pushTokens)).toBeTruthy();
+      expect(pushTokens.includes(token)).toBeTruthy();
+      expect(pushTokens).toHaveLength(1)
+    });
+
+    it('should reject invalid tokens', () => {
+      const promises = [];
+
+      const params = [
+        {},
+        {token: ''},
+        {token: null},
+        {kek: 'Shto'}
+      ];
+
+      params.forEach(params => {
+        promises.push(request(app.getHttpServer()).post('/users/push_tokens').send(params).set('Authorization', 'Bearer ' + user.token));
+      });
+
+      return Promise.all(promises)
+        .then(responses => {
+          responses.forEach(res => {
+            expect(res.statusCode).toBe(400);
+          });
         });
     });
   });

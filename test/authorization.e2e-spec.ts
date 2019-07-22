@@ -248,7 +248,7 @@ describe('Authorization (e2e)', () => {
 
     if(credentials) {
       expect(user.user.name).toBe(credentials.email.match(emailName)[0]);
-      picUrlRegex = /http:\/\/(localhost|127\.0\.0\.1):\d{5}(\/images\/.*\.png)/;
+      picUrlRegex = /http:\/\/(.*)(\/static\/images\/.*\.png)/;
     } else {
       picUrlRegex = /https:\/\/graph\.facebook\.com\/.*\/picture\?type=large/;
     }

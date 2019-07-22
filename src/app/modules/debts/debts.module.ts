@@ -1,5 +1,4 @@
 import {forwardRef, Module} from '@nestjs/common';
-import {MongooseModule} from "@nestjs/mongoose";
 import {UsersModule} from '../users/users.module';
 import {DebtsController} from './controllers/debts/debts.controller';
 import {DebtsService} from './services/debts/debts.service';
@@ -8,16 +7,19 @@ import {DebtsMultipleController} from './controllers/debts-multiple/debts-multip
 import {DebtsSingleController} from './controllers/debts-single/debts-single.controller';
 import {DebtsMultipleService} from './services/debts-multiple/debts-multiple.service';
 import {DebtsSingleService} from './services/debts-single/debts-single.service';
-import {DebtSchema} from './models/debt.schema';
-import {DebtsCollectionRef} from './models/debts-collection-ref';
 import {AuthenticationModule} from '../authentication/authentication.module';
+import {TypegooseModule} from 'nestjs-typegoose';
+import {Debt} from './models/debt';
+import {DebtsCollectionRef} from './models/debts-collection-ref';
+import {FirebaseModule} from '../firebase/firebase.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: DebtsCollectionRef, schema: DebtSchema }]),
+    TypegooseModule.forFeature([{ typegooseClass: Debt, schemaOptions: {timestamps: true, collection: DebtsCollectionRef} }]),
     forwardRef(() => UsersModule),
     forwardRef(() => OperationsModule),
     forwardRef(() => AuthenticationModule),
+    FirebaseModule
   ],
   controllers: [
     DebtsController,
@@ -30,7 +32,7 @@ import {AuthenticationModule} from '../authentication/authentication.module';
     DebtsSingleService
   ],
   exports: [
-    MongooseModule.forFeature([{ name: DebtsCollectionRef, schema: DebtSchema }]),
+    TypegooseModule.forFeature([{ typegooseClass: Debt, schemaOptions: {timestamps: true, collection: DebtsCollectionRef} }]),
     DebtsService
   ]
 })

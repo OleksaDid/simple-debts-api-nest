@@ -10,6 +10,7 @@ import {DebtResponseDto} from '../../models/debt-response.dto';
 import {IdParamDto} from '../../../../common/classes/id-param.dto';
 import {ConnectUserDto} from '../../models/connect-user.dto';
 import {DebtsSingleService} from '../../services/debts-single/debts-single.service';
+import {RequestHelper} from '../../../../common/classes/request-helper';
 
 @ApiBearerAuth()
 @ApiUseTags('debts/single')
@@ -43,14 +44,18 @@ export class DebtsSingleController {
         user.id,
         createPayload.userName,
         createPayload.currency,
-        `${req.protocol}/${req.hostname}`,
+        RequestHelper.getFormattedHostAndProtocol(req),
       );
 
       return this.debtsService.getDebtsById(user.id, newDebt._id);
     }
 
 
-
+  /**
+   *
+   * Endpoint for user to aknowledge and accept deleted debt
+   *
+   */
     @ApiResponse({
         status: 201,
         type: DebtResponseDto
@@ -65,7 +70,7 @@ export class DebtsSingleController {
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto
     ) {
-        await this.debtsSingleService.acceptUserDeletedStatus(user.id, params.id);
+        await this.debtsSingleService.acceptUserDeletedStatus(user, params.id);
 
         return this.debtsService.getDebtsById(user.id, params.id);
     }
@@ -91,7 +96,7 @@ export class DebtsSingleController {
             throw new HttpException('You can\'t connect yourself', HttpStatus.BAD_REQUEST);
         }
 
-        await this.debtsSingleService.connectUserToSingleDebt(user.id, connectUser.userId, params.id);
+        await this.debtsSingleService.connectUserToSingleDebt(user, connectUser.userId, params.id);
 
         return this.debtsService.getDebtsById(user.id, params.id);
     }
@@ -112,7 +117,7 @@ export class DebtsSingleController {
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto
     ) {
-        await this.debtsSingleService.acceptUserConnectionToSingleDebt(user.id, params.id);
+        await this.debtsSingleService.acceptUserConnectionToSingleDebt(user, params.id);
 
         return this.debtsService.getDebtsById(user.id, params.id);
     }
@@ -133,7 +138,7 @@ export class DebtsSingleController {
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto
     ) {
-        await this.debtsSingleService.declineUserConnectionToSingleDebt(user.id, params.id);
+        await this.debtsSingleService.declineUserConnectionToSingleDebt(user, params.id);
 
         return this.debtsService.getAllUserDebts(user.id);
     }

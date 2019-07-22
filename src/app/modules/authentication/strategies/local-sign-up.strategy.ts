@@ -2,16 +2,16 @@ import * as LocalStrategy from 'passport-local';
 import {PassportStrategy} from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
-import {UserInterface} from "../../users/models/user.interface";
-import {Model} from 'mongoose';
 import {AuthenticationService} from "../services/authentication/authentication.service";
 import {AuthStrategy} from "../strategies-list.enum";
 import {EMAIL_NAME_PATTERN, EMAIL_PATTERN, PASSWORD_LENGTH_RESTRICTIONS} from "../../../common/constants/constants";
-import {UserCollectionRef} from '../../users/models/user-collection-ref';
 import {AuthUser} from '../models/auth-user';
 import {Request} from 'express';
 import {UsersService} from '../../users/services/users/users.service';
+import {RequestHelper} from '../../../common/classes/request-helper';
+import {InjectModel} from 'nestjs-typegoose';
+import {ModelType} from 'typegoose';
+import {User} from '../../users/models/user';
 
 
 @Injectable()
@@ -19,7 +19,7 @@ export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStr
     constructor(
         private readonly authService: AuthenticationService,
         private _userService: UsersService,
-        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
+        @InjectModel(User) private readonly User: ModelType<User>
     ) {
         super({
             usernameField : 'email',
@@ -51,22 +51,17 @@ export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStr
 
       // if there is no user with that email
       // create the user
-      const newUser: any  = new this.User();
+      const newUser  = new this.User();
 
       // set the user's local credentials
-      newUser.email    = email;
-      newUser.password = newUser.generateHash(password);
+      newUser.email = email;
+      newUser.name = email.match(EMAIL_NAME_PATTERN)[0];
+      newUser.generatePasswordHash(password);
+      newUser.picture = await this._userService.generateUserIdenticon(newUser.id, RequestHelper.getFormattedHostAndProtocol(req));
 
       // save the user
       await newUser.save();
 
-      createdUser = await this.User.findOne({email}).exec();
-
-      createdUser.picture = await this._userService.generateUserIdenticon(createdUser.id, `${req.protocol}/${req.hostname}`);
-      createdUser.name = email.match(EMAIL_NAME_PATTERN)[0];
-
-      await createdUser.save();
-
-      return this.authService.updateTokensAndReturnUser(createdUser);
+      return this.authService.updateTokensAndReturnUser(newUser);
     }
 }

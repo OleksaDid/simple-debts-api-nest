@@ -3,8 +3,6 @@ import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {AuthenticationHelper} from './helpers/authentication.helper';
 import {AppHelper} from './helpers/app.helper';
 import {Collection} from 'mongodb';
-import {DebtInterface} from '../src/app/modules/debts/models/debt.interface';
-import {OperationInterface} from '../src/app/modules/operations/models/operation.interface';
 import {DbHelper} from './helpers/db.helper';
 import {EnvField} from '../src/app/modules/config/models/env-field.enum';
 import {DebtsStatus} from '../src/app/modules/debts/models/debts-status.enum';
@@ -16,12 +14,15 @@ import {validate} from 'class-validator';
 import {plainToClass} from 'class-transformer';
 import {OperationStatus} from '../src/app/modules/operations/models/operation-status.enum';
 import * as mongoose from "mongoose";
+import {InstanceType} from 'typegoose';
 
 const ObjectId = mongoose.Types.ObjectId;
 
 const credentials = require('./fixtures/debts-users');
 
 import * as dotenv from 'dotenv';
+import {Debt} from '../src/app/modules/debts/models/debt';
+import {Operation} from '../src/app/modules/operations/models/operation';
 dotenv.config({ path: __dirname + '/../config/test.env' });
 
 
@@ -31,8 +32,8 @@ describe('Operations (e2e)', () => {
   let user: AuthUser;
   let user2: AuthUser;
 
-  let Debts: Collection<DebtInterface>;
-  let Operations: Collection<OperationInterface>;
+  let Debts: Collection<Debt>;
+  let Operations: Collection<Operation>;
 
   let debt: DebtResponseDto;
   let singleDebt: DebtResponseDto;
@@ -40,11 +41,18 @@ describe('Operations (e2e)', () => {
   let operationPayload: CreateOperationDto;
   let operationPayloadSingle: CreateOperationDto;
 
-  let operation: OperationInterface;
-  let operationSingle: OperationInterface;
-  let moneyOperations: OperationInterface[] = [];
+  let operation: InstanceType<Operation>;
+  let operationSingle: InstanceType<Operation>;
 
   beforeAll(async () => {
+    const dbHelper = new DbHelper(process.env[EnvField.MONGODB_URI]);
+    await dbHelper.init();
+    Debts = dbHelper.Debts;
+    Operations = dbHelper.Operations;
+
+    await Debts.deleteMany({});
+    await Operations.deleteMany({});
+
     app = await AppHelper.getTestApp();
 
     authHelper = new AuthenticationHelper(app);
@@ -57,17 +65,9 @@ describe('Operations (e2e)', () => {
       user2 = _user2;
     });
 
-    const dbHelper = new DbHelper(process.env[EnvField.MONGODB_URI]);
-    await dbHelper.init();
-    Debts = dbHelper.Debts;
-    Operations = dbHelper.Operations;
-
-    Debts.drop();
-    Operations.drop();
-
     debt = (await request(app.getHttpServer())
       .post('/debts/multiple')
-      .send({userId: user2.user.id, currency: 'UA'})
+      .send({userId: user2.user.id, currency: 'UAH'})
       .set('Authorization', `Bearer ${user.token}`))
       .body;
 
@@ -87,7 +87,7 @@ describe('Operations (e2e)', () => {
 
     singleDebt = (await request(app.getHttpServer())
       .post('/debts/single')
-      .send({userName: 'Valera12', currency: 'UA'})
+      .send({userName: 'Valera12', currency: 'UAH'})
       .set('Authorization', `Bearer ${user.token}`))
       .body;
 
@@ -198,18 +198,17 @@ describe('Operations (e2e)', () => {
     });
 
     it('creates new operation in db', async () => {
-      const {body: op} = await request(app.getHttpServer())
+      const resp = await request(app.getHttpServer())
         .post('/operations')
         .send(Object.assign({}, operationPayload))
         .set('Authorization', `Bearer ${user.token}`)
         .expect(201);
 
-      const operations = await Operations.find().toArray();
+      const operations = await Operations.find().toArray() as InstanceType<Operation>[];
 
       expect(operations).toBeTruthy();
       expect(Array.isArray(operations)).toBeTruthy();
       expect(operations.length).toBe(1);
-      moneyOperations.push(operations[0]);
       operation = operations[0];
       operation.id = operation._id.toString();
     });
@@ -301,7 +300,7 @@ describe('Operations (e2e)', () => {
         .send(Object.assign({}, operationPayloadSingle))
         .set('Authorization', `Bearer ${user.token}`)
         .then(({body: _debt}) => {
-          expect(_debt).toHaveProperty('summary', operationPayload.moneyAmount * 2);
+          expect(_debt).toHaveProperty('summary', operationPayloadSingle.moneyAmount * 2);
           expect(_debt).toHaveProperty('moneyReceiver', operationPayloadSingle.moneyReceiver);
         });
     });
@@ -545,17 +544,22 @@ describe('Operations (e2e)', () => {
         .then(({body}) => expect(body).toHaveProperty('error'));
     });
 
-    it('should return debts by id, set status to \'UNCHANGED\' and remove operation from list', () => {
+    it('should return debts by id, set status to \'UNCHANGED\' and set operations status to CANCELLED, statusAcceptor to null and CancelledBy to userId', () => {
 
       return request(app.getHttpServer())
         .post(`/operations/${newOperation.id}/creation/decline`)
         .set('Authorization', `Bearer ${user2.token}`)
         .expect(201)
-        .then(({body: _debt}) => {
+        .then(async ({body: _debt}) => {
           expect(_debt).toHaveProperty('status', DebtsStatus.UNCHANGED);
           expect(_debt).toHaveProperty('statusAcceptor', null);
 
-          expect(_debt.moneyOperations.find(operation => operation.id === newOperation.id)).not.toBeTruthy();
+          expect(_debt.moneyOperations.find(operation => operation.id === newOperation.id)).toBeTruthy();
+
+          const operation = await Operations.findOne({_id: new ObjectId(newOperation.id)});
+          expect(operation.status).toBe(OperationStatus.CANCELLED);
+          expect(operation.statusAcceptor).toBe(null);
+          expect(operation.cancelledBy.toString()).toBe(user2.user.id.toString());
         });
     });
 
@@ -565,12 +569,6 @@ describe('Operations (e2e)', () => {
         .set('Authorization', `Bearer ${user2.token}`)
         .expect(400)
         .then(({body}) => expect(body).toHaveProperty('error'));
-    });
-
-    it('should remove operation from db', () => {
-      return Operations
-        .findOne({_id: new ObjectId(newOperation.id)})
-        .then(resp => expect(resp).toBe(null));
     });
 
     it('can be cancelled by user who\'s created operation', () => {
@@ -588,11 +586,11 @@ describe('Operations (e2e)', () => {
           expect(_debt).toHaveProperty('status', DebtsStatus.UNCHANGED);
           expect(_debt).toHaveProperty('statusAcceptor', null);
 
-          expect(_debt.moneyOperations.find(operation => operation.id === newOperation.id)).not.toBeTruthy();
+          expect(_debt.moneyOperations.find(operation => operation.id === newOperation.id)).toBeTruthy();
 
           return Operations.findOne({_id: new ObjectId(newOperation.id)});
         })
-        .then(resp => expect(resp).toBe(null));
+        .then(operation => expect(operation.status).toBe(OperationStatus.CANCELLED));
     });
   });
 

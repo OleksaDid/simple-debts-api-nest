@@ -1,26 +1,30 @@
-import * as fs from "fs";
+import * as fs from 'fs';
 import 'reflect-metadata';
 import * as request from 'supertest';
 import {DebtDto} from '../src/app/modules/debts/models/debt.dto';
 import {DebtsStatus} from '../src/app/modules/debts/models/debts-status.enum';
 import {DebtsAccountType} from '../src/app/modules/debts/models/debts-account-type.enum';
 import * as mongoose from 'mongoose';
-import {UserInterface} from '../src/app/modules/users/models/user.interface';
 import {Logger} from '@nestjs/common';
 import {Collection} from 'mongodb';
 import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {AuthenticationHelper} from './helpers/authentication.helper';
 import {DbHelper} from './helpers/db.helper';
-import {DebtInterface} from '../src/app/modules/debts/models/debt.interface';
 import {AppHelper} from './helpers/app.helper';
-import {OperationInterface} from '../src/app/modules/operations/models/operation.interface';
 import {EnvField} from '../src/app/modules/config/models/env-field.enum';
+import {Debt} from '../src/app/modules/debts/models/debt';
+import {Operation} from '../src/app/modules/operations/models/operation';
+import {User} from '../src/app/modules/users/models/user';
+import {InstanceType} from 'typegoose';
+import * as dotenv from 'dotenv';
+import {DebtResponseDto} from '../src/app/modules/debts/models/debt-response.dto';
+import {OperationStatus} from '../src/app/modules/operations/models/operation-status.enum';
+import {OperationResponseDto} from '../src/app/modules/operations/models/operation-response.dto';
 
 const users = require('./fixtures/debts-users');
 const ObjectId = mongoose.Types.ObjectId;
 
 
-import * as dotenv from 'dotenv';
 dotenv.config({ path: __dirname + '/../config/test.env' });
 
 
@@ -28,17 +32,20 @@ describe('Debts (e2e)', () => {
   let app;
   let authHelper: AuthenticationHelper;
 
-  let User: Collection<UserInterface>;
-  let Debts: Collection<DebtInterface>;
-  let Operations: Collection<OperationInterface>;
+  let User: Collection<User>;
+  let Debts: Collection<Debt>;
+  let Operations: Collection<Operation>;
 
   let user1: AuthUser;
   let user2: AuthUser;
   let user3: AuthUser;
 
-  let singleDebt;
-  let multipleDebt;
-  let connectUserDebt;
+  let singleDebt: DebtResponseDto;
+  let singleDebt2: DebtResponseDto;
+  let virtualUserId;
+
+  let multipleDebt: DebtResponseDto;
+  let connectUserDebt: DebtResponseDto;
 
   let connectUserDebtVirtualUser;
 
@@ -48,6 +55,9 @@ describe('Debts (e2e)', () => {
     Debts = dbHelper.Debts;
     User = dbHelper.Users;
     Operations = dbHelper.Operations;
+
+    await Debts.deleteMany({});
+    await Operations.deleteMany({});
 
     app = await AppHelper.getTestApp();
 
@@ -71,21 +81,21 @@ describe('Debts (e2e)', () => {
     Debts.drop();
     Operations.drop();
   });
-  
-  
+
+
 
   describe('POST /debts/multiple', () => {
 
     it('should return 401 error if token is invalid', () => {
       return authHelper.testAuthorizationGuard(
-        request(app.getHttpServer()).post('/debts/multiple').send({userId: user2.user.id, currency: 'UA'})
+        request(app.getHttpServer()).post('/debts/multiple').send({userId: user2.user.id, currency: 'UAH'})
       );
     });
 
     it('should throw an error if you try to create debts w/ yourself', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user1.user.id, currency: 'UA'})
+        .send({userId: user1.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
@@ -101,7 +111,7 @@ describe('Debts (e2e)', () => {
         promises.push(
           request(app.getHttpServer())
             .post('/debts/multiple')
-            .send({userId: user, currency: 'UA'})
+            .send({userId: user, currency: 'UAH'})
             .set('Authorization', 'Bearer ' + user1.token)
         );
       });
@@ -116,7 +126,7 @@ describe('Debts (e2e)', () => {
 
     it('should throw an error if you try to create debts w/ invalid country code', () => {
       const promises = [];
-      const codes = ['UAH', '', 'A'];
+      const codes = ['UAHI', 'UA', 'A', ''];
 
       codes.forEach(code => {
         promises.push(
@@ -136,36 +146,61 @@ describe('Debts (e2e)', () => {
     });
 
     it('should return new created Debts object', () => {
+      const currency = 'UAH';
+
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UA'})
+        .send({userId: user2.user.id, currency})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
-        .then(debt => {
+        .then(({body}) => {
           const expectedDebts: any = new DebtDto(
             user1.user.id,
             user2.user.id,
             DebtsAccountType.MULTIPLE_USERS,
-            'UA'
+            currency
           );
 
           expectedDebts.user = user2.user;
           delete expectedDebts.users;
 
-          multipleDebt = debt.body;
+          multipleDebt = body;
 
-          checkIsObjectMatchesDebtsModel(debt.body, expectedDebts);
+          checkIsObjectMatchesDebtsModel(body, expectedDebts);
         });
     });
 
-    it('should throw an error if debts between these users already exists', () => {
+    it('should throw an error if debts between these users with same currency already exists', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UA'})
+        .send({userId: user2.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
-        .then(resp => {
-          expect(resp.body).toHaveProperty('error', 'Such debts object is already created');
+        .then(({body}) => {
+          expect(body).toHaveProperty('error', 'Such debts object is already created');
+        });
+    });
+
+    it('should allow to create debt if these users already have debt but with other currency', () => {
+      const currency = 'USD';
+
+      return request(app.getHttpServer())
+        .post('/debts/multiple')
+        .send({userId: user2.user.id, currency})
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201)
+        .then(({body}) => {
+          const expectedDebts: any = new DebtDto(
+            user1.user.id,
+            user2.user.id,
+            DebtsAccountType.MULTIPLE_USERS,
+            currency
+          );
+
+          expectedDebts.user = user2.user;
+          delete expectedDebts.users;
+
+          checkIsObjectMatchesDebtsModel(body, expectedDebts);
         });
     });
   });
@@ -176,13 +211,13 @@ describe('Debts (e2e)', () => {
 
     it('should return 401 error if token is invalid', () => {
       return authHelper.testAuthorizationGuard(
-        request(app.getHttpServer()).post('/debts/single').send({userName: 'Valera', currency: 'UA'})
+        request(app.getHttpServer()).post('/debts/single').send({userName: 'Valera', currency: 'UAH'})
       );
     });
 
     it('should throw an error if you try to create debts w/ invalid country code', () => {
       const promises = [];
-      const codes = ['UAH', '', 'A'];
+      const codes = ['UAHI', 'UA', 'A', ''];
 
       codes.forEach(code => {
         promises.push(
@@ -204,7 +239,7 @@ describe('Debts (e2e)', () => {
     it('should throw an error if you try to create debts w/ invalid username', () => {
       return request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: '', currency: 'UA'})
+        .send({userName: '', currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
@@ -213,9 +248,12 @@ describe('Debts (e2e)', () => {
     });
 
     it('should create new user & return new created Debts object', async () => {
-      const debt = await request(app.getHttpServer())
+      const currency = 'UAH';
+      const userName = 'Valera';
+
+      const {body: debt} = await request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera', currency: 'UA'})
+        .send({userName, currency})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201);
 
@@ -223,38 +261,51 @@ describe('Debts (e2e)', () => {
         user1.user.id,
         user2.user.id,
         DebtsAccountType.SINGLE_USER,
-        'UA'
+        currency
       );
 
       expectedDebts.user = {
-        name: 'Valera'
+        name: userName
       };
       delete expectedDebts.users;
 
-      singleDebt = JSON.parse(JSON.stringify(debt.body));
+      singleDebt = JSON.parse(JSON.stringify(debt));
 
-      expect(debt.body.user).toHaveProperty('id');
-      expect(debt.body.user).toHaveProperty('picture');
+      expect(debt.user).toHaveProperty('id');
+      expect(debt.user).toHaveProperty('picture');
 
-      delete debt.body.user.id;
-      delete debt.body.user.picture;
+      delete debt.user.id;
+      delete debt.user.picture;
 
-      checkIsObjectMatchesDebtsModel(debt.body, expectedDebts);
+      checkIsObjectMatchesDebtsModel(debt, expectedDebts);
 
-      const virtualUser: UserInterface = await User.findOne({_id: new ObjectId(singleDebt.user.id)});
+      virtualUserId = singleDebt.user.id;
+      const virtualUser: InstanceType<User> = await User.findOne({_id: new ObjectId(virtualUserId)});
 
       expect(virtualUser).toHaveProperty('virtual');
       expect(virtualUser.virtual).toBeTruthy();
     });
 
-    it('should throw an error if there is already virtual user w/ such name', () => {
+    it('should throw an error if there is already virtual user w/ such name and currency', () => {
       return request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera', currency: 'UA'})
+        .send({userName: 'Valera', currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
-          expect(resp.body).toHaveProperty('error', 'You already have virtual user with such name');
+          expect(resp.body).toHaveProperty('error', 'You already have virtual user with such name and currency');
+        });
+    });
+
+    it('should allow to create debt if there is already virtual user with such name but with other currency', () => {
+      return request(app.getHttpServer())
+        .post('/debts/single')
+        .send({userName: 'Valera', currency: 'USD'})
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201)
+        .then(({body: debt}) => {
+          singleDebt2 = debt;
+          expect(debt.user.id).toBe(virtualUserId);
         });
     });
   });
@@ -280,7 +331,7 @@ describe('Debts (e2e)', () => {
             user1.user.id,
             user2.user.id,
             DebtsAccountType.MULTIPLE_USERS,
-            'UA'
+            'UAH'
           );
 
           debtsModel.user = {
@@ -398,40 +449,13 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    it('should return all debts', () => {
+    it('should return null', () => {
 
       return request(app.getHttpServer())
         .delete('/debts/' + singleDebt.id)
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(200)
-        .then(resp => {
-          const debts = resp.body;
-          const debtsModel: any = new DebtDto(
-            user1.user.id,
-            user2.user.id,
-            DebtsAccountType.MULTIPLE_USERS,
-            'UA'
-          );
-
-          debtsModel.user = {
-            id: '435tyeh',
-            name: 'Valera',
-            picture: 'vjhgtyt78'
-          };
-          delete debtsModel.users;
-          delete debtsModel.moneyOperations;
-
-          expect(debts).toHaveProperty('debts');
-          expect(Array.isArray(debts.debts)).toBeTruthy();
-
-          debts.debts.forEach(debt => {
-            checkIsObjectMatchesDebtsModel(debt, debtsModel, false);
-          });
-
-          expect(debts).toHaveProperty('summary');
-          expect(debts.summary).toHaveProperty('toGive', 0);
-          expect(debts.summary).toHaveProperty('toTake', 0);
-        });
+        .then(({body}) => expect(Object.keys(body).length).toBe(0));
     });
 
     it('should remove debt from db', () => {
@@ -442,7 +466,20 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    it('should remove virtual user from db', () => {
+    it('shouldn\'t remove virtual user from if there still other debts with virt user', () => {
+      return User
+        .findOne({_id: new ObjectId(singleDebt.user.id)})
+        .then(({_id}) => expect(_id.toString()).toBe(virtualUserId));
+    });
+
+    it('should remove virtual user from db if no more debts with virt user left', async () => {
+
+      await request(app.getHttpServer())
+        .delete('/debts/' + singleDebt2.id)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(200)
+        .then(({body}) => expect(Object.keys(body).length).toBe(0));
+
       return User
         .findOne({_id: new ObjectId(singleDebt.user.id)})
         .then(resp => {
@@ -450,11 +487,14 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    it('should remove virtual user\'s image from server', (done) => {
-      fs.exists('public/images/' + singleDebt.user.picture.match(/[^\/]*$/), (exists) => {
-        expect(exists).toBe(false);
-        done();
-      });
+    it('should remove virtual user\'s image from server', () => {
+      jest.setTimeout(150000);
+
+      return request(app.getHttpServer())
+        .get('/static/images/' + singleDebt.user.picture.match(/[^\/]*$/)[0])
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(404)
+        .then(({body}) => expect(body.error).toBe('This file doesn\'t exist'));
     });
   });
 
@@ -520,14 +560,13 @@ describe('Debts (e2e)', () => {
         .post('/debts/multiple/' + multipleDebt.id + '/creation/accept')
         .set('Authorization', 'Bearer ' + user2.token)
         .expect(201)
-        .then(resp => {
-          const debt = resp.body;
+        .then(({body: debt}) => {
           const unchangedDebt = JSON.parse(JSON.stringify(multipleDebt));
           unchangedDebt.status = 'UNCHANGED';
           unchangedDebt.statusAcceptor = null;
           unchangedDebt.user = user1.user;
           delete unchangedDebt.moneyOperations;
-          checkIsObjectMatchesDebtsModel(debt, unchangedDebt);
+          checkIsObjectMatchesDebtsModel(debt, unchangedDebt, true);
         });
     });
 
@@ -536,8 +575,8 @@ describe('Debts (e2e)', () => {
         .post('/debts/multiple/' + multipleDebt.id + '/creation/accept')
         .set('Authorization', 'Bearer ' + user2.token)
         .expect(400)
-        .then(resp => {
-          expect(resp.body).toHaveProperty('error', 'Debts not found');
+        .then(({body}) => {
+          expect(body).toHaveProperty('error', 'Debts not found');
         });
     });
   });
@@ -550,8 +589,9 @@ describe('Debts (e2e)', () => {
 
       const {body} = await request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UA'})
-        .set('Authorization', 'Bearer ' + user1.token);
+        .send({userId: user2.user.id, currency: 'UAH'})
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201);
 
       multipleDebt = body;
     });
@@ -638,16 +678,16 @@ describe('Debts (e2e)', () => {
     it('can be deleted by user who\'s created Debts', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UA'})
+        .send({userId: user2.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
-        .then(resp => multipleDebt = resp.body)
+        .then(({body}) => multipleDebt = body)
         .then(() => request(app.getHttpServer())
           .post('/debts/multiple/' + multipleDebt.id + '/creation/decline')
           .set('Authorization', 'Bearer ' + user1.token)
-          .expect(201))
-        .then(resp => {
-          const debts = resp.body;
+          .expect(201)
+        )
+        .then(({body: debts}) => {
           const unchangedDebt = JSON.parse(JSON.stringify(multipleDebt));
           unchangedDebt.status = 'UNCHANGED';
           unchangedDebt.statusAcceptor = null;
@@ -676,7 +716,7 @@ describe('Debts (e2e)', () => {
 
       const {body} = await request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UA'})
+        .send({userId: user2.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201);
 
@@ -694,7 +734,7 @@ describe('Debts (e2e)', () => {
         description: 'test'
       };
 
-      await request(app.getHttpServer())
+      const resp = await request(app.getHttpServer())
         .post('/operations')
         .send(operationPayload)
         .set('Authorization', 'Bearer ' + user1.token)
@@ -756,20 +796,7 @@ describe('Debts (e2e)', () => {
         .delete('/debts/' + multipleDebt.id)
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(200)
-        .then(resp => {
-          const debts = resp.body;
-
-          expect(debts).toHaveProperty('debts');
-          expect(Array.isArray(debts.debts)).toBeTruthy();
-
-          debts.debts.forEach(debt => {
-            checkIsObjectMatchesDebtsModel(debt, multipleDebt, false);
-          });
-
-          expect(debts).toHaveProperty('summary');
-          expect(debts.summary).toHaveProperty('toGive', );
-          expect(debts.summary).toHaveProperty('toTake', );
-        });
+        .then(({body: debt}) => checkIsObjectMatchesDebtsModel(debt, multipleDebt, false));
     });
 
     it('should change Debts type to SINGLE_DEBT & status to USER_DELETED', () => {
@@ -819,7 +846,7 @@ describe('Debts (e2e)', () => {
     beforeAll(async () => {
       const {body} = await request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UA'})
+        .send({userId: user2.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token);
 
       multipleDebt = body;
@@ -921,7 +948,7 @@ describe('Debts (e2e)', () => {
 
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UA'})
+        .send({userId: user2.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .then(resp => multipleDebt = resp.body)
         .then(() => {
@@ -974,7 +1001,7 @@ describe('Debts (e2e)', () => {
     beforeAll(async () => {
       return request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera new', currency: 'UA'})
+        .send({userName: 'Valera new', currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .then(({body: debt}) => {
           connectUserDebt = debt;
@@ -1084,7 +1111,7 @@ describe('Debts (e2e)', () => {
     it('should send an error if you try to connect user with whom you already have a debt', () => {
       return request(app.getHttpServer())
         .post('/debts/multiple')
-        .send({userId: user2.user.id, currency: 'UA'})
+        .send({userId: user2.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
         .then(() => {
@@ -1115,7 +1142,7 @@ describe('Debts (e2e)', () => {
     it('should send an error if you try to connect user to debt that is already waiting for connection', () => {
       return request(app.getHttpServer())
         .post('/debts/single/' + connectUserDebt.id + '/connect_user')
-        .send({userId: user3.user.id, currency: 'UA'})
+        .send({userId: user3.user.id, currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(debt => {
@@ -1373,10 +1400,10 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    async function createConnectUserDebt(): Promise<DebtInterface> {
+    async function createConnectUserDebt(): Promise<DebtResponseDto> {
       const {body: debt} = await request(app.getHttpServer())
         .post('/debts/single')
-        .send({userName: 'Valera new', currency: 'UA'})
+        .send({userName: 'Valera new', currency: 'UAH'})
         .set('Authorization', `Bearer ${user2.token}`)
         .expect(201);
 
@@ -1391,8 +1418,175 @@ describe('Debts (e2e)', () => {
   });
 
 
+  describe('POST /debts/multiple/:id/accept_all_operations', () => {
+    let operationPayload;
 
-  function checkIsObjectMatchesDebtsModel(object, debtsModel: DebtDto, checkKeys = true): void {
+
+    beforeAll(async () => {
+      await Debts.deleteMany({});
+
+      const {body} = await request(app.getHttpServer())
+        .post('/debts/multiple')
+        .send({userId: user2.user.id, currency: 'UAH'})
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201);
+
+      multipleDebt = body;
+
+      operationPayload = {
+        debtsId: multipleDebt.id,
+        moneyAmount: 300,
+        moneyReceiver: user1.user.id,
+        description: 'test'
+      };
+
+      await request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/creation/accept`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post('/operations')
+        .send(operationPayload)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201);
+
+      multipleDebt = (await request(app.getHttpServer())
+        .post('/operations')
+        .send(operationPayload)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201))
+        .body;
+    });
+
+    it('should return 401 error if token is invalid', () => {
+      return authHelper.testAuthorizationGuard(
+        request(app.getHttpServer()).post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+      );
+    });
+
+    it('should return 400 or 404 if no param is set', () => {
+      const promises = [];
+      const params = [
+        '',
+        '/',
+        ' ',
+        null,
+        undefined
+      ];
+
+      params.forEach(param => {
+        promises.push(request(app.getHttpServer()).post(`/debts/multiple/${param}/accept_all_operations`).set('Authorization', 'Bearer ' + user1.token));
+      });
+
+      return Promise.all(promises).then(responses => {
+        responses.forEach(({statusCode}) => {
+          expect(statusCode).toBeGreaterThanOrEqual(400);
+          expect(statusCode).toBeLessThanOrEqual(404);
+        });
+      });
+    });
+
+    it('should return 400 if invalid param is set', () => {
+
+      return request(app.getHttpServer())
+        .post('/debts/multiple/' + 'y34ygv4h3' + '/accept_all_operations')
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(400)
+        .then(({body}) => {
+          expect(body).toHaveProperty('error');
+        });
+    });
+
+    it('should throw an error if non status acceptor user will try to accept', async () => {
+      return request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(400)
+        .then(({body}) => {
+          expect(body).toHaveProperty('error');
+        })
+    });
+
+    it('should accept all debt operations and return debt entity', async () => {
+      expect(multipleDebt.summary).toBe(0);
+      expect(multipleDebt.status).toBe(DebtsStatus.CHANGE_AWAITING);
+      expect(multipleDebt.statusAcceptor).toBe(user2.user.id);
+
+      const acceptedDebt: DebtResponseDto = (await request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201))
+        .body;
+
+      checkIsObjectMatchesDebtsModel(acceptedDebt, multipleDebt, false);
+
+      expect(acceptedDebt.summary).toBe(operationPayload.moneyAmount * 2);
+      expect(acceptedDebt.statusAcceptor).toBe(null);
+      expect(acceptedDebt.status).toBe(DebtsStatus.UNCHANGED);
+      expect(acceptedDebt.moneyOperations.every(operation => operation.statusAcceptor === null)).toBeTruthy();
+      expect(acceptedDebt.moneyOperations.every(operation => operation.status === OperationStatus.UNCHANGED)).toBeTruthy();
+
+      multipleDebt = acceptedDebt;
+    });
+
+    it('shouldn\'t accept cancelled operations', async () => {
+      await request(app.getHttpServer())
+        .post('/operations')
+        .send(operationPayload)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201);
+
+      const debt = (await request(app.getHttpServer())
+        .post('/operations')
+        .send(operationPayload)
+        .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201))
+        .body as DebtResponseDto;
+
+      const operation: OperationResponseDto = debt.moneyOperations.find(op => op.status === OperationStatus.CREATION_AWAITING);
+
+      await request(app.getHttpServer())
+        .post(`/operations/${operation.id}/creation/decline`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201);
+
+      const acceptedDebt: DebtResponseDto = (await request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201))
+        .body;
+
+      checkIsObjectMatchesDebtsModel(acceptedDebt, multipleDebt, false);
+
+      expect(acceptedDebt.summary).toBe(operationPayload.moneyAmount * 3);
+      expect(acceptedDebt.statusAcceptor).toBe(null);
+      expect(acceptedDebt.status).toBe(DebtsStatus.UNCHANGED);
+      expect(acceptedDebt.moneyOperations.every(operation => operation.statusAcceptor === null)).toBeTruthy();
+      expect(acceptedDebt.moneyOperations.some(operation => operation.status === OperationStatus.UNCHANGED)).toBeTruthy();
+      expect(acceptedDebt.moneyOperations.some(operation => operation.status === OperationStatus.CANCELLED)).toBeTruthy();
+    });
+
+    it('should return debt id there are no operatiosn to accept', async () => {
+
+      const debt = (await request(app.getHttpServer())
+        .post(`/debts/multiple/${multipleDebt.id}/accept_all_operations`)
+        .set('Authorization', 'Bearer ' + user2.token)
+        .expect(201))
+        .body;
+
+      expect(debt.summary).toBe(operationPayload.moneyAmount * 3);
+      expect(debt.statusAcceptor).toBe(null);
+      expect(debt.status).toBe(DebtsStatus.UNCHANGED);
+      expect(debt.moneyOperations.every(operation => operation.statusAcceptor === null)).toBeTruthy();
+      expect(debt.moneyOperations.some(operation => operation.status === OperationStatus.UNCHANGED)).toBeTruthy();
+      expect(debt.moneyOperations.some(operation => operation.status === OperationStatus.CANCELLED)).toBeTruthy();
+    });
+  });
+
+
+
+  function checkIsObjectMatchesDebtsModel(object, debtsModel: DebtResponseDto, checkKeys = true): void {
     Object.keys(debtsModel).forEach(key => {
       if(checkKeys) {
         expect(object).toHaveProperty(key, debtsModel[key]);

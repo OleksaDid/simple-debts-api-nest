@@ -1,17 +1,16 @@
 import {PassportStrategy} from '@nestjs/passport';
 import {ExtractJwt, Strategy} from 'passport-jwt';
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
-import {UserInterface} from '../../users/models/user.interface';
-import {Model} from 'mongoose';
 import {AuthStrategy} from '../strategies-list.enum';
 import {DateHelper} from '../../../common/classes/date-helper';
 import {AuthenticationService} from '../services/authentication/authentication.service';
-import {UserCollectionRef} from '../../users/models/user-collection-ref';
 import {ConfigService} from '../../config/services/config.service';
 import {EnvField} from '../../config/models/env-field.enum';
 import {JwtPayload} from '../models/jwt-payload';
 import {AuthUser} from '../models/auth-user';
+import {InjectModel} from 'nestjs-typegoose';
+import {ModelType} from 'typegoose';
+import {User} from '../../users/models/user';
 
 
 @Injectable()
@@ -20,7 +19,7 @@ export class RefreshTokenStrategy extends PassportStrategy(Strategy, AuthStrateg
     constructor(
         private readonly authService: AuthenticationService,
         private readonly _config: ConfigService,
-        @InjectModel(UserCollectionRef) private readonly User: Model<UserInterface>
+        @InjectModel(User) private readonly User: ModelType<User>
     ) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -35,9 +34,9 @@ export class RefreshTokenStrategy extends PassportStrategy(Strategy, AuthStrateg
           throw new HttpException('Refresh Token Expired', HttpStatus.BAD_REQUEST);
       }
 
-      const user: UserInterface = await this.User.findById(jwt_payload.id).lean() as UserInterface;
+      const user = await this.User.findById(jwt_payload.id).exec();
 
-      if (!user || user.refreshTokenId !== jwt_payload.jwtid) {
+      if (!user || user.refreshTokenId.toString() !== jwt_payload.jwtid.toString()) {
         throw new HttpException('Invalid Token', HttpStatus.BAD_REQUEST);
       }
 

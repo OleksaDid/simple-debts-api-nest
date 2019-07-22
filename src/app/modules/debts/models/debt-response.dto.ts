@@ -1,5 +1,5 @@
 import {SendUserDto} from '../../users/models/user.dto';
-    import {DebtsAccountType} from './debts-account-type.enum';
+import {DebtsAccountType} from './debts-account-type.enum';
 import {DebtsStatus} from './debts-status.enum';
 import {Id} from '../../../common/types/types';
 import {OperationResponseDto} from '../../operations/models/operation-response.dto';
