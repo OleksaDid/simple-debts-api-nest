@@ -7,7 +7,6 @@ import {OperationsCollectionRef} from '../../operations/models/operation-collect
 import {OperationStatus} from '../../operations/models/operation-status.enum';
 import {BasicDocumentFields} from '../../../common/classes/basic-document-fields';
 import {ObjectId} from '../../../common/classes/object-id';
-import {Logger} from '@nestjs/common';
 
 
 export class Debt extends Typegoose implements BasicDocumentFields {

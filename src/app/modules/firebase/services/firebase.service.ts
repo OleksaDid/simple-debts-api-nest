@@ -1,8 +1,7 @@
-import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import {ConfigService} from '../../config/services/config.service';
 import {EnvField} from '../../config/models/env-field.enum';
-import {storage} from 'firebase-admin';
-import * as fs from "fs";
+import {storage, messaging} from 'firebase-admin';
 
 let instance = null;
 
@@ -10,6 +9,7 @@ let instance = null;
 export class FirebaseService {
 
   private _fileStorage: storage.Storage;
+  private _messaging: messaging.Messaging;
 
   constructor(
     private _configService: ConfigService
@@ -27,6 +27,10 @@ export class FirebaseService {
     return this._fileStorage;
   }
 
+  get messaging(): messaging.Messaging {
+    return this._messaging;
+  }
+
 
   initFirebase(): void {
     const firebase = require("firebase-admin");
@@ -40,43 +44,7 @@ export class FirebaseService {
     });
 
     this._fileStorage = firebase.storage();
-  }
-
-  async uploadFile(filePath: string, fileName: string, destination: string, protocolAndHost: string): Promise<string> {
-    const [newFile] = await this.storage.bucket().upload(filePath, {
-      destination
-    });
-    await newFile.makePublic();
-    fs.unlinkSync(filePath);
-    return `${protocolAndHost}/static/${destination}`;
-  }
-
-  async getStaticFile(fileName: string): Promise<Buffer> {
-    let file;
-
-    try {
-      file = this.storage.bucket().file(fileName);
-
-      const [exists] = await file.exists();
-      if(!exists) {
-        throw new HttpException('This file doesn\'t exist', HttpStatus.NOT_FOUND);
-      }
-
-      const [buffer] = await file.download();
-
-      return buffer;
-    } catch(err) {
-      throw new HttpException('This file doesn\'t exist', HttpStatus.NOT_FOUND);
-    }
-  }
-
-  async deleteFile(fileName: string): Promise<void> {
-    try {
-      const file = this.storage.bucket().file(fileName);
-      await file.delete();
-    } catch(err) {
-      new HttpException(err, HttpStatus.BAD_REQUEST)
-    }
+    this._messaging = firebase.messaging();
   }
 
 }

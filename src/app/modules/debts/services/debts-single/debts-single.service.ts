@@ -1,19 +1,19 @@
-import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
+import {HttpException, HttpStatus, Injectable, Logger} from '@nestjs/common';
 import {DebtsStatus} from '../../models/debts-status.enum';
 import {DebtsAccountType} from '../../models/debts-account-type.enum';
 import {Id} from '../../../../common/types/types';
 import {OperationStatus} from '../../../operations/models/operation-status.enum';
 import {DebtDto} from '../../models/debt.dto';
 import {validate} from 'class-validator';
-import {CreateVirtualUserDto} from '../../../users/models/user.dto';
+import {CreateVirtualUserDto, SendUserDto} from '../../../users/models/user.dto';
 import {UsersService} from '../../../users/services/users/users.service';
 import {InjectModel} from 'nestjs-typegoose';
 import {ModelType, InstanceType} from 'typegoose';
 import {User} from '../../../users/models/user';
 import {Debt} from '../../models/debt';
 import {Operation} from '../../../operations/models/operation';
-import {ObjectId} from '../../../../common/classes/object-id';
 import {DebtsHelper} from '../../models/debts.helper';
+import {NotificationsService} from '../../../firebase/services/notifications.service';
 
 @Injectable()
 export class DebtsSingleService {
@@ -21,7 +21,8 @@ export class DebtsSingleService {
     @InjectModel(User) private readonly User: ModelType<User>,
     @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
     @InjectModel(Operation) private readonly Operation: ModelType<Operation>,
-    private _usersService: UsersService
+    private _usersService: UsersService,
+    private _notificationsService: NotificationsService
   ) {}
 
 
@@ -86,7 +87,7 @@ export class DebtsSingleService {
     }
   }
 
-  async acceptUserDeletedStatus(userId: Id, debtsId: Id): Promise<InstanceType<Debt>> {
+  async acceptUserDeletedStatus(user: SendUserDto, debtsId: Id): Promise<void> {
     let debt;
 
     try {
@@ -95,7 +96,7 @@ export class DebtsSingleService {
           _id: debtsId,
           type: DebtsAccountType.SINGLE_USER,
           status: DebtsStatus.USER_DELETED,
-          statusAcceptor: userId
+          statusAcceptor: user.id
         })
         .populate({
           path: 'moneyOperations',
@@ -117,15 +118,15 @@ export class DebtsSingleService {
       debt.statusAcceptor = null;
     } else {
       debt.status = DebtsStatus.CHANGE_AWAITING;
-      debt.statusAcceptor = userId;
+      debt.statusAcceptor = user.id;
     }
 
-    return debt.save();
+    await debt.save();
   };
 
-  async connectUserToSingleDebt(userId: Id, connectUserId: Id, debtsId: Id): Promise<InstanceType<Debt>> {
+  async connectUserToSingleDebt(user: SendUserDto, connectUserId: Id, debtsId: Id): Promise<void> {
     const debtsWithConnectingUser = await this.Debts
-      .find({users: {$all: [userId, connectUserId]}})
+      .find({users: {$all: [user.id, connectUserId]}})
       .exec();
 
     if(debtsWithConnectingUser && debtsWithConnectingUser.length > 0) {
@@ -134,7 +135,7 @@ export class DebtsSingleService {
 
 
     const debt = await this.Debts
-      .findOne({_id: debtsId, type: DebtsAccountType.SINGLE_USER, users: {$in: [userId]}});
+      .findOne({_id: debtsId, type: DebtsAccountType.SINGLE_USER, users: {$in: [user.id]}});
 
     if(!debt) {
       throw new HttpException('Debt is not found', HttpStatus.BAD_REQUEST);
@@ -151,10 +152,17 @@ export class DebtsSingleService {
     debt.status = DebtsStatus.CONNECT_USER;
     debt.statusAcceptor = connectUserId as any;
 
-    return debt.save();
+    await debt.save();
+
+    this._notificationsService.sendDebtNotification(
+      debt,
+      user.id,
+      `Debt connection request`,
+      `${user.name} has invited you to join his debt`
+    );
   };
 
-  async acceptUserConnectionToSingleDebt(userId: Id, debtsId: Id): Promise<void> {
+  async acceptUserConnectionToSingleDebt(user: SendUserDto, debtsId: Id): Promise<void> {
     let debt;
 
     try {
@@ -163,7 +171,7 @@ export class DebtsSingleService {
           _id: debtsId,
           type: DebtsAccountType.SINGLE_USER,
           status: DebtsStatus.CONNECT_USER,
-          statusAcceptor: userId
+          statusAcceptor: user.id
         })
         .populate('users', 'virtual');
 
@@ -174,17 +182,17 @@ export class DebtsSingleService {
       throw new HttpException('Debts wasn\'t found', HttpStatus.BAD_REQUEST);
     }
 
-    const virtualUserId = debt.users.find(user => user['virtual']);
+    const virtualUserId = debt.users.find(user => user['virtual'])._id;
 
     debt.status = DebtsStatus.UNCHANGED;
     debt.type = DebtsAccountType.MULTIPLE_USERS;
     debt.statusAcceptor = null;
 
     if(debt.moneyReceiver === virtualUserId) {
-      debt.moneyReceiver = userId;
+      debt.moneyReceiver = user.id;
     }
 
-    debt.users.push(userId);
+    debt.users.push(user.id);
 
     const promises = [];
 
@@ -194,7 +202,7 @@ export class DebtsSingleService {
           .findById(operation)
           .then((op: InstanceType<Operation>) => {
             if(op.moneyReceiver === virtualUserId) {
-              op.moneyReceiver = new ObjectId(userId);
+              op.moneyReceiver = user.id as any;
             }
 
             return op.save();
@@ -215,9 +223,16 @@ export class DebtsSingleService {
 
     await debt.save();
     await Promise.all(promises);
+
+    this._notificationsService.sendDebtNotification(
+      debt,
+      user.id,
+      `Debt connection accepted`,
+      `${user.name} has accepted your debt connection request`
+    );
   };
 
-  async declineUserConnectionToSingleDebt(userId: Id, debtsId: Id): Promise<void> {
+  async declineUserConnectionToSingleDebt(user: SendUserDto, debtsId: Id): Promise<void> {
     const debt = await this.Debts
       .findOneAndUpdate(
         {
@@ -225,8 +240,8 @@ export class DebtsSingleService {
           type: DebtsAccountType.SINGLE_USER,
           status: DebtsStatus.CONNECT_USER,
           $or: [
-            {users: {$in: [userId]}},
-            {statusAcceptor: userId}
+            {users: {$in: [user.id]}},
+            {statusAcceptor: user.id}
           ]
         },
         {status: DebtsStatus.UNCHANGED, statusAcceptor: null});
@@ -234,5 +249,12 @@ export class DebtsSingleService {
     if(!debt) {
       throw new HttpException('Debt is not found', HttpStatus.BAD_REQUEST);
     }
+
+    this._notificationsService.sendDebtNotification(
+      debt,
+      user.id,
+      `Debt connection rejected`,
+      `${user.name} has rejected your debt connection request`
+    );
   }
 }

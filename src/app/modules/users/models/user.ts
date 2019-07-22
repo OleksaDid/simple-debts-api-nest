@@ -39,7 +39,7 @@ export class User extends Typegoose implements BasicDocumentFields {
   @prop()
   accessTokenId: string;
 
-  @arrayProp({ items: String })
+  @arrayProp({ items: String, validate: { validator: array => array.length <= 100, message: 'You exceeded maximum amount of tokens'} })
   pushTokens: string[];
 
 

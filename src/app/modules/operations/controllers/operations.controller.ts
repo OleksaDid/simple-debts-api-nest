@@ -36,7 +36,7 @@ export class OperationsController {
     @ReqUser() user: SendUserDto
   ): Promise<DebtResponseDto> {
     const debt = await this.operationsService.createOperation(
-      user.id,
+      user,
       createOperationDto.debtsId,
       createOperationDto.moneyAmount,
       createOperationDto.moneyReceiver,
@@ -80,7 +80,7 @@ export class OperationsController {
     @Param() params: IdParamDto,
     @ReqUser() user: SendUserDto
   ) {
-    const debt = await this.operationsService.declineOperation(user.id, params.id);
+    const debt = await this.operationsService.declineOperation(user, params.id);
 
     return this.debtsService.getDebtsById(user.id, debt._id);
   }

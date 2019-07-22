@@ -3,12 +3,12 @@ import {InjectModel} from 'nestjs-typegoose';
 import {Id} from '../../../../common/types/types';
 import {SendUserDto, UpdateUserDataDto} from '../../models/user.dto';
 import {IMAGES_FOLDER_DIR, IMAGES_FOLDER_FILE_PATTERN} from '../../../../common/constants/constants';
-import {FirebaseService} from '../../../firebase/services/firebase.service';
 import * as Identicon from 'identicon.js';
 import * as fs from 'fs';
 import {ModelType} from 'typegoose';
 import {Debt} from '../../../debts/models/debt';
 import {User} from '../../models/user';
+import {StorageService} from '../../../firebase/services/storage.service';
 
 @Injectable()
 export class UsersService {
@@ -16,7 +16,7 @@ export class UsersService {
   constructor(
     @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
     @InjectModel(User) private readonly User: ModelType<User>,
-    private _firebaseService: FirebaseService
+    private _storageService: StorageService
   ) {}
 
 
@@ -90,11 +90,11 @@ export class UsersService {
 
 
   private async _uploadUserImage(filePath: string, fileName: string, protocolAndHost: string): Promise<string> {
-    return this._firebaseService.uploadFile(filePath, fileName, `${IMAGES_FOLDER_DIR}/${fileName}`, protocolAndHost);
+    return this._storageService.uploadFile(filePath, fileName, `${IMAGES_FOLDER_DIR}/${fileName}`, protocolAndHost);
   }
 
   private async _deleteUserFile(fileUrl: string): Promise<void> {
     const imageName = fileUrl.match(IMAGES_FOLDER_FILE_PATTERN)[0];
-    return this._firebaseService.deleteFile(imageName);
+    return this._storageService.deleteFile(imageName);
   }
 }

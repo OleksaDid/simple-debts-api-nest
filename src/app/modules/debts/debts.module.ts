@@ -11,6 +11,7 @@ import {AuthenticationModule} from '../authentication/authentication.module';
 import {TypegooseModule} from 'nestjs-typegoose';
 import {Debt} from './models/debt';
 import {DebtsCollectionRef} from './models/debts-collection-ref';
+import {FirebaseModule} from '../firebase/firebase.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import {DebtsCollectionRef} from './models/debts-collection-ref';
     forwardRef(() => UsersModule),
     forwardRef(() => OperationsModule),
     forwardRef(() => AuthenticationModule),
+    FirebaseModule
   ],
   controllers: [
     DebtsController,

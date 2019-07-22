@@ -80,7 +80,7 @@ export class DebtsController {
         @Param() params: IdParamDto,
         @ReqUser() user: SendUserDto
     ) {
-      const type = await this.debtsService.deleteDebt(user.id, params.id);
+      const type = await this.debtsService.deleteDebt(user, params.id);
 
       if(type === DebtsAccountType.MULTIPLE_USERS) {
         return this.debtsService.getDebtsById(user.id, params.id);

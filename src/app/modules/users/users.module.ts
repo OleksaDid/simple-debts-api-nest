@@ -15,7 +15,7 @@ import {User} from './models/user';
     TypegooseModule.forFeature([{ typegooseClass: User, schemaOptions: {timestamps: true, collection: UserCollectionRef} }]),
     forwardRef(() => AuthenticationModule),
     forwardRef(() => DebtsModule),
-    FirebaseModule,
+    forwardRef(() => FirebaseModule),
     MulterModule.registerAsync({
       useExisting: ConfigService
     })

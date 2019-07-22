@@ -63,12 +63,12 @@ export class DebtsService {
       return this.formatDebt(debt, userId, true);
   };
 
-  async deleteDebt(userId: Id, debtsId: Id): Promise<DebtsAccountType> {
+  async deleteDebt(user: SendUserDto, debtsId: Id): Promise<DebtsAccountType> {
     let debt: InstanceType<Debt>;
 
     try {
       debt = await this.Debts
-        .findOne({_id: debtsId, users: {$in: [userId]}})
+        .findOne({_id: debtsId, users: {$in: [user.id]}})
         .populate({ path: 'users', select: 'name picture'});
 
       if(!debt) {
@@ -79,54 +79,54 @@ export class DebtsService {
     }
 
 
-      if(debt.type === DebtsAccountType.SINGLE_USER) {
-          await this.singleDebtsService.deleteSingleDebt(debt, userId);
-      } else if(debt.type === DebtsAccountType.MULTIPLE_USERS) {
-          await this.multipleDebtsService.deleteMultipleDebts(debt, userId);
-      }
+    if(debt.type === DebtsAccountType.SINGLE_USER) {
+        await this.singleDebtsService.deleteSingleDebt(debt, user.id);
+    } else if(debt.type === DebtsAccountType.MULTIPLE_USERS) {
+        await this.multipleDebtsService.deleteMultipleDebts(debt, user);
+    }
 
-      return debt.type;
+    return debt.type;
   };
 
 
 
 
   private formatDebt(debt: InstanceType<Debt>, userId: Id, saveOperations: boolean) {
-      // make preview for user connect
-      if(debt.status === DebtsStatus.CONNECT_USER && debt.statusAcceptor.toString() === userId) {
-          const userToChange = debt.users.find(user => (user as InstanceType<User>).virtual) as InstanceType<User>;
+    // make preview for user connect
+    if(debt.status === DebtsStatus.CONNECT_USER && debt.statusAcceptor.toString() === userId) {
+        const userToChange = debt.users.find(user => (user as InstanceType<User>).virtual) as InstanceType<User>;
 
-          debt = JSON.parse(JSON.stringify(debt).replace(userToChange._id.toString(), userId.toString()));
-      }
+        debt = JSON.parse(JSON.stringify(debt).replace(userToChange._id.toString(), userId.toString()));
+    }
 
-      const user = DebtsHelper.getAnotherDebtUserModel(debt, userId);
+    const user = DebtsHelper.getAnotherDebtUserModel(debt, userId);
 
-      let operations = [];
+    let operations = [];
 
-      if(saveOperations) {
-          operations = (debt.moneyOperations as Operation[])
-              .map(operation => new OperationResponseDto(
-                operation._id.toString(),
-                operation.date,
-                operation.moneyAmount,
-                operation.moneyReceiver ? operation.moneyReceiver.toString() : null,
-                operation.description,
-                operation.status,
-                operation.statusAcceptor ? operation.statusAcceptor.toString() : null,
-                operation.cancelledBy ? operation.cancelledBy.toString() : null
-              ));
-      }
+    if(saveOperations) {
+        operations = (debt.moneyOperations as Operation[])
+            .map(operation => new OperationResponseDto(
+              operation._id.toString(),
+              operation.date,
+              operation.moneyAmount,
+              operation.moneyReceiver ? operation.moneyReceiver.toString() : null,
+              operation.description,
+              operation.status,
+              operation.statusAcceptor ? operation.statusAcceptor.toString() : null,
+              operation.cancelledBy ? operation.cancelledBy.toString() : null
+            ));
+    }
 
-      return new DebtResponseDto(
-          debt._id,
-          new SendUserDto(user._id.toString(), user.name, user.picture),
-          debt.type,
-          debt.currency,
-          debt.status,
-          debt.statusAcceptor ? debt.statusAcceptor.toString() : null,
-          debt.summary,
-          debt.moneyReceiver ? debt.moneyReceiver.toString() : null,
-          operations
-      );
+    return new DebtResponseDto(
+        debt._id,
+        new SendUserDto(user._id.toString(), user.name, user.picture),
+        debt.type,
+        debt.currency,
+        debt.status,
+        debt.statusAcceptor ? debt.statusAcceptor.toString() : null,
+        debt.summary,
+        debt.moneyReceiver ? debt.moneyReceiver.toString() : null,
+        operations
+    );
   }
 }

@@ -6,12 +6,14 @@ import {OperationsCollectionRef} from './models/operation-collection-ref';
 import {AuthenticationModule} from '../authentication/authentication.module';
 import {TypegooseModule} from 'nestjs-typegoose';
 import {Operation} from './models/operation';
+import {FirebaseModule} from '../firebase/firebase.module';
 
 @Module({
   imports: [
     TypegooseModule.forFeature([{ typegooseClass: Operation, schemaOptions: {collection: OperationsCollectionRef} }]),
     forwardRef(() => DebtsModule),
     forwardRef(() => AuthenticationModule),
+    FirebaseModule
   ],
   providers: [
     OperationsService

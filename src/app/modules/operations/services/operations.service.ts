@@ -8,6 +8,8 @@ import {Debt} from '../../debts/models/debt';
 import {Operation} from '../models/operation';
 import {InjectModel} from 'nestjs-typegoose';
 import {DebtsHelper} from '../../debts/models/debts.helper';
+import {NotificationsService} from '../../firebase/services/notifications.service';
+import {SendUserDto} from '../../users/models/user.dto';
 
 @Injectable()
 export class OperationsService {
@@ -16,10 +18,11 @@ export class OperationsService {
   constructor(
       @InjectModel(Operation) private readonly Operation: ModelType<Operation>,
       @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
+      private _notificationsService: NotificationsService
   ) {}
 
 
-  async createOperation(userId: Id, debtsId: Id, moneyAmount: number, moneyReceiver: Id, description: string): Promise<InstanceType<Debt>> {
+  async createOperation(user: SendUserDto, debtsId: Id, moneyAmount: number, moneyReceiver: Id, description: string): Promise<InstanceType<Debt>> {
     let debt: InstanceType<Debt>;
 
     try {
@@ -27,7 +30,7 @@ export class OperationsService {
         .findOne(
           {
             _id: debtsId,
-            users: {'$all': [userId, moneyReceiver]},
+            users: {'$all': [user.id, moneyReceiver]},
             $nor: [{status: DebtsStatus.CONNECT_USER}, {status: DebtsStatus.CREATION_AWAITING}]
           }
         );
@@ -39,34 +42,41 @@ export class OperationsService {
       throw new HttpException('Debts wasn\'t found', HttpStatus.BAD_REQUEST);
     }
 
-      const statusAcceptor = DebtsHelper.getAnotherDebtUserId(debt, userId);
+    const statusAcceptor = DebtsHelper.getAnotherDebtUserId(debt, user.id);
 
-      const newOperation = new this.Operation({
-        debtsId: debtsId as any,
-        moneyAmount,
-        moneyReceiver: moneyReceiver as any,
-        description,
-        status: debt.type === DebtsAccountType.SINGLE_USER ? OperationStatus.UNCHANGED : OperationStatus.CREATION_AWAITING,
-        statusAcceptor: debt.type === DebtsAccountType.SINGLE_USER ? null : statusAcceptor,
-        date: new Date()
-      });
+    const newOperation = new this.Operation({
+      debtsId: debtsId as any,
+      moneyAmount,
+      moneyReceiver: moneyReceiver as any,
+      description,
+      status: debt.type === DebtsAccountType.SINGLE_USER ? OperationStatus.UNCHANGED : OperationStatus.CREATION_AWAITING,
+      statusAcceptor: debt.type === DebtsAccountType.SINGLE_USER ? null : statusAcceptor,
+      date: new Date()
+    });
 
-      if(debt.statusAcceptor && debt.statusAcceptor.toString() === userId) {
-          throw new HttpException('Cannot modify debts that need acceptance', HttpStatus.BAD_REQUEST);
-      }
+    if(debt.statusAcceptor && debt.statusAcceptor.toString() === user.id) {
+        throw new HttpException('Cannot modify debts that need acceptance', HttpStatus.BAD_REQUEST);
+    }
 
-      await newOperation.save();
+    await newOperation.save();
 
-      if(debt.type !== DebtsAccountType.SINGLE_USER) {
-          debt.statusAcceptor = DebtsHelper.getAnotherDebtUserId(debt, userId);
-          debt.status = DebtsStatus.CHANGE_AWAITING;
-      }
+    if(debt.type !== DebtsAccountType.SINGLE_USER) {
+        debt.statusAcceptor = DebtsHelper.getAnotherDebtUserId(debt, user.id);
+        debt.status = DebtsStatus.CHANGE_AWAITING;
+    }
 
-      debt.moneyOperations.push(newOperation.id);
+    debt.moneyOperations.push(newOperation.id);
 
-      await debt.calculateSummary();
+    await debt.calculateSummary();
 
-      return debt;
+    this._notificationsService.sendDebtNotification(
+      debt,
+      user.id,
+      `New operation`,
+      `${user.name} has ${user.id === moneyReceiver ? 'borrowed' : 'owed you'} ${moneyAmount}${debt.currency}`
+    );
+
+    return debt;
   };
 
   async deleteOperation(userId: Id, operationId: Id): Promise<InstanceType<Debt>> {
@@ -137,7 +147,7 @@ export class OperationsService {
       return debt;
   };
 
-  async declineOperation(userId: Id, operationId: Id): Promise<InstanceType<Debt>> {
+  async declineOperation(user: SendUserDto, operationId: Id): Promise<InstanceType<Debt>> {
     const operation = await this.Operation.findOne(
       {_id: operationId, status: OperationStatus.CREATION_AWAITING}
     ).exec();
@@ -147,7 +157,7 @@ export class OperationsService {
     }
 
     const debt: InstanceType<Debt> = await this.Debts
-      .findOne({_id: operation.debtsId, users: {$in: [userId]}})
+      .findOne({_id: operation.debtsId, users: {$in: [user.id]}})
       .populate({
         path: 'moneyOperations',
         select: 'status'
@@ -160,7 +170,7 @@ export class OperationsService {
 
     operation.status = OperationStatus.CANCELLED;
     operation.statusAcceptor = null;
-    operation.cancelledBy = userId as any;
+    operation.cancelledBy = user.id as any;
 
     await operation.save();
 
@@ -174,6 +184,13 @@ export class OperationsService {
     }
 
     await debt.calculateSummary();
+
+    this._notificationsService.sendDebtNotification(
+      debt,
+      user.id,
+      `Operation canceled`,
+      `${user.name} has canceled ${operation.moneyAmount}${debt.currency} operation`
+    );
 
     return debt;
   };
