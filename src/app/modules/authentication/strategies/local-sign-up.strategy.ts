@@ -8,7 +8,6 @@ import {EMAIL_NAME_PATTERN, EMAIL_PATTERN, PASSWORD_LENGTH_RESTRICTIONS} from ".
 import {AuthUser} from '../models/auth-user';
 import {Request} from 'express';
 import {UsersService} from '../../users/services/users/users.service';
-import {RequestHelper} from '../../../common/classes/request-helper';
 import {InjectModel} from 'nestjs-typegoose';
 import {ModelType} from 'typegoose';
 import {User} from '../../users/models/user';
@@ -57,7 +56,7 @@ export class LocalSignUpStrategy extends PassportStrategy(LocalStrategy, AuthStr
       newUser.email = email;
       newUser.name = email.match(EMAIL_NAME_PATTERN)[0];
       newUser.generatePasswordHash(password);
-      newUser.picture = await this._userService.generateUserIdenticon(newUser.id, RequestHelper.getFormattedHostAndProtocol(req));
+      newUser.picture = await this._userService.generateUserIdenticon(newUser.id);
 
       // save the user
       await newUser.save();

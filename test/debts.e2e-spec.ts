@@ -20,6 +20,7 @@ import * as dotenv from 'dotenv';
 import {DebtResponseDto} from '../src/app/modules/debts/models/debt-response.dto';
 import {OperationStatus} from '../src/app/modules/operations/models/operation-status.enum';
 import {OperationResponseDto} from '../src/app/modules/operations/models/operation-response.dto';
+import {RequestHelper} from './helpers/request-helper';
 
 const users = require('./fixtures/debts-users');
 const ObjectId = mongoose.Types.ObjectId;
@@ -487,14 +488,10 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    it('should remove virtual user\'s image from server', () => {
-      jest.setTimeout(150000);
-
-      return request(app.getHttpServer())
-        .get('/static/images/' + singleDebt.user.picture.match(/[^\/]*$/)[0])
-        .set('Authorization', 'Bearer ' + user1.token)
-        .expect(404)
-        .then(({body}) => expect(body.error).toBe('This file doesn\'t exist'));
+    it('should remove virtual user\'s image from server', async () => {
+      return RequestHelper
+        .getImage(singleDebt.user.picture)
+        .expect(({status}) => expect(status).toBeGreaterThanOrEqual(400));
     });
   });
 

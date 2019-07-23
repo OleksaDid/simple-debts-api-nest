@@ -7,6 +7,7 @@ import {DbHelper} from './helpers/db.helper';
 import {EnvField} from '../src/app/modules/config/models/env-field.enum';
 import * as mongoose from "mongoose";
 import {User} from '../src/app/modules/users/models/user';
+import {RequestHelper} from './helpers/request-helper';
 
 const credentials = require('./fixtures/test-user');
 let user: AuthUser;
@@ -135,7 +136,9 @@ describe('Users (e2e)', () => {
         });
     });
 
-    it('should update image', () => {
+    it('should update image', async () => {
+      const {header} = await RequestHelper.getImage(user.user.picture);
+      const pictureBeforeModifDate = new Date(header['last-modified']).getTime();
 
       return request(app.getHttpServer())
         .post('/users')
@@ -143,11 +146,14 @@ describe('Users (e2e)', () => {
         .attach('image', __dirname + '/files/avatar.png')
         .field('name', updateData.name)
         .expect(201)
-        .then(({body}) => {
+        .then(async ({body}) => {
           expect(body).toHaveProperty('name', updateData.name);
 
           expect(body).toHaveProperty('picture');
-          expect(body.picture).not.toBe(user.user.picture);
+
+          const {header} = await RequestHelper.getImage(body.picture);
+          const pictureAfterModifDate = new Date(header['last-modified']).getTime();
+          expect(pictureAfterModifDate).not.toBe(pictureBeforeModifDate);
 
           expect(body).toHaveProperty('id', user.user.id);
         });

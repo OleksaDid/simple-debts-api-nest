@@ -27,7 +27,7 @@ export class DebtsSingleService {
 
 
 
-  async createSingleDebt(creatorId: Id, userName: string, currency: string, host: string): Promise<InstanceType<Debt>> {
+  async createSingleDebt(creatorId: Id, userName: string, currency: string): Promise<InstanceType<Debt>> {
     const virtUser = new CreateVirtualUserDto(userName);
 
     const errors = await validate(virtUser);
@@ -63,7 +63,7 @@ export class DebtsSingleService {
     if(existingVirtUser) {
       userId = existingVirtUser._id;
     } else {
-      virtUserModel.picture = await this._usersService.generateUserIdenticon(virtUserModel.id, host);
+      virtUserModel.picture = await this._usersService.generateUserIdenticon(virtUserModel.id);
       await virtUserModel.save();
       userId = virtUserModel._id;
     }

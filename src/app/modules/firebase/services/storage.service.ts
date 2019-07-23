@@ -10,33 +10,19 @@ export class StorageService {
   ) {}
 
 
-  async uploadFile(filePath: string, fileName: string, destination: string, protocolAndHost: string): Promise<string> {
+  async uploadFile(filePath: string, destination: string): Promise<string> {
     const [newFile] = await this._firebaseService.storage.bucket().upload(filePath, {
       destination
     });
-    await newFile.makePublic();
+
     fs.unlinkSync(filePath);
-    return `${protocolAndHost}/static/${destination}`;
-  }
 
-  // TODO: setup cache or return public picture link
-  async getStaticFile(fileName: string): Promise<Buffer> {
-    let file;
+    const [fileUrl] = await newFile.getSignedUrl({
+      action: 'read',
+      expires: new Date('12-12-2050')
+    });
 
-    try {
-      file = this._firebaseService.storage.bucket().file(fileName);
-
-      const [exists] = await file.exists();
-      if(!exists) {
-        throw new HttpException('This file doesn\'t exist', HttpStatus.NOT_FOUND);
-      }
-
-      const [buffer] = await file.download();
-
-      return buffer;
-    } catch(err) {
-      throw new HttpException('This file doesn\'t exist', HttpStatus.NOT_FOUND);
-    }
+    return fileUrl;
   }
 
   async deleteFile(fileName: string): Promise<void> {

@@ -10,7 +10,6 @@ import {DebtResponseDto} from '../../models/debt-response.dto';
 import {IdParamDto} from '../../../../common/classes/id-param.dto';
 import {ConnectUserDto} from '../../models/connect-user.dto';
 import {DebtsSingleService} from '../../services/debts-single/debts-single.service';
-import {RequestHelper} from '../../../../common/classes/request-helper';
 
 @ApiBearerAuth()
 @ApiUseTags('debts/single')
@@ -43,8 +42,7 @@ export class DebtsSingleController {
       const newDebt = await this.debtsSingleService.createSingleDebt(
         user.id,
         createPayload.userName,
-        createPayload.currency,
-        RequestHelper.getFormattedHostAndProtocol(req),
+        createPayload.currency
       );
 
       return this.debtsService.getDebtsById(user.id, newDebt._id);

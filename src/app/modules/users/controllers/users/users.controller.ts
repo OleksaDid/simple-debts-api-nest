@@ -16,7 +16,6 @@ import {UserNameDto} from '../../models/user-name.dto';
 import {ApiBearerAuth, ApiResponse, ApiUseTags, ApiImplicitFile, ApiConsumes} from '@nestjs/swagger';
 import {FileInterceptor} from '@nestjs/platform-express';
 import {Request} from 'express';
-import {RequestHelper} from '../../../../common/classes/request-helper';
 import {UserTokenDto} from '../../models/user-token.dto';
 
 
@@ -69,7 +68,7 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
     @ReqUser() user: SendUserDto
   ) {
-      return this.usersService.updateUserData(user, userNameDto, file, RequestHelper.getFormattedHostAndProtocol(req));
+      return this.usersService.updateUserData(user, userNameDto, file);
   }
 
 
