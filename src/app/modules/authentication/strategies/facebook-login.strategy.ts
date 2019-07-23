@@ -32,15 +32,14 @@ export class FacebookLoginStrategy extends PassportStrategy(FacebookTokenStrateg
 
       if(!user) {
         user = new this.User();
+
+        user.email = profile._json.email;
+        user.name = `${profile.name.givenName} ${profile.name.familyName}`;
+        user.picture = ImagesHelper.generateFbImagePath(profile.id);
+        user.facebook = profile.id;
+        await user.save();
       }
 
-      user.email = profile._json.email;
-      user.name = `${profile.name.givenName} ${profile.name.familyName}`;
-      user.picture = ImagesHelper.generateFbImagePath(profile.id);
-      user.facebook = profile.id;
-
-      const savedUser = await user.save();
-
-      return this._authService.updateTokensAndReturnUser(savedUser);
+      return this._authService.updateTokensAndReturnUser(user);
     }
 }

@@ -19,6 +19,7 @@ export class StorageService {
     return `${protocolAndHost}/static/${destination}`;
   }
 
+  // TODO: setup cache or return public picture link
   async getStaticFile(fileName: string): Promise<Buffer> {
     let file;
 
