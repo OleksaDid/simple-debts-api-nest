@@ -71,7 +71,21 @@ export class DebtsSingleService {
     return this.Debts.create(new DebtDto(creatorId, userId, DebtsAccountType.SINGLE_USER, currency))
   }
 
-  async deleteSingleDebt(debt: InstanceType<Debt>, userId: Id): Promise<void> {
+  async deleteSingleDebt(debtsId: Id, userId: Id): Promise<void> {
+    let debt: InstanceType<Debt>;
+
+    try {
+      debt = await this.Debts
+        .findOne({_id: debtsId, users: {$in: [userId]}})
+        .populate({ path: 'users', select: 'name picture'});
+
+      if(!debt) {
+        throw 'Debt not found';
+      }
+    } catch(err) {
+      throw new HttpException('Debt not found', HttpStatus.BAD_REQUEST);
+    }
+
     const virtualUser = DebtsHelper.getAnotherDebtUserModel(debt, userId);
 
     await debt.remove();

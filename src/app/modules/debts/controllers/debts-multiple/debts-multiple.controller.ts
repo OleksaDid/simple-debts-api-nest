@@ -1,4 +1,4 @@
-import {Body, Controller, HttpException, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
+import {Body, Controller, Delete, HttpException, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
 import {AuthGuard} from '@nestjs/passport';
 import {ApiBearerAuth, ApiResponse, ApiUseTags} from '@nestjs/swagger';
 import {DebtResponseDto} from '../../models/debt-response.dto';
@@ -8,9 +8,6 @@ import {SendUserDto} from '../../../users/models/user.dto';
 import {DebtsService} from '../../services/debts/debts.service';
 import {IdParamDto} from '../../../../common/classes/id-param.dto';
 import {DebtsMultipleService} from '../../services/debts-multiple/debts-multiple.service';
-import {FirebaseNotification} from '../../../firebase/models/firebase-notification';
-import {FirebaseMessageData} from '../../../firebase/models/firebase-message-data';
-import {DebtsHelper} from '../../models/debts.helper';
 
 
 @ApiBearerAuth()
@@ -27,6 +24,25 @@ export class DebtsMultipleController {
 
 
 
+
+  @ApiResponse({
+    status: 200,
+    type: DebtResponseDto
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Delete(':id')
+  async deleteDebt(
+    @Param() params: IdParamDto,
+    @ReqUser() user: SendUserDto
+  ) {
+    await this.debtsMultipleService.deleteMultipleDebts(params.id, user);
+
+    return this.debtsService.getDebtsById(user.id, params.id);
+  }
 
   @ApiResponse({
     status: 201,

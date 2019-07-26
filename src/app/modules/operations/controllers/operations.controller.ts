@@ -67,7 +67,7 @@ export class OperationsController {
     @Param() params: IdParamDto,
     @ReqUser() user: SendUserDto
   ) {
-    const debt = await this.operationsService.acceptOperation(user.id, params.id);
+    const debt = await this.operationsService.acceptOperation(user, params.id);
 
     return this.debtsService.getDebtsById(user.id, debt._id)
   }

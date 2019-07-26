@@ -1,4 +1,4 @@
-import {Body, Controller, HttpException, HttpStatus, Param, Post, Req, UseGuards} from '@nestjs/common';
+import {Body, Controller, Delete, HttpException, HttpStatus, Param, Post, Req, UseGuards} from '@nestjs/common';
 import {Request} from 'express';
 import {AuthGuard} from '@nestjs/passport';
 import {ApiUseTags, ApiBearerAuth, ApiResponse} from '@nestjs/swagger';
@@ -24,120 +24,137 @@ export class DebtsSingleController {
 
 
 
-    @ApiResponse({
-        status: 201,
-        type: DebtResponseDto
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
-    })
-    @UseGuards(AuthGuard())
-    @Post()
-    async createSingleDebt(
-        @Body() createPayload: CreateDebtSingleDto,
-        @Req() req: Request,
-        @ReqUser() user: SendUserDto
-    ) {
-      const newDebt = await this.debtsSingleService.createSingleDebt(
-        user.id,
-        createPayload.userName,
-        createPayload.currency
-      );
-
-      return this.debtsService.getDebtsById(user.id, newDebt._id);
-    }
+  @ApiResponse({
+    status: 200
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Delete(':id')
+  async deleteDebt(
+    @Param() params: IdParamDto,
+    @ReqUser() user: SendUserDto
+  ) {
+    return this.debtsSingleService.deleteSingleDebt(params.id, user.id);
+  }
 
 
-  /**
-   *
-   * Endpoint for user to aknowledge and accept deleted debt
-   *
-   */
-    @ApiResponse({
-        status: 201,
-        type: DebtResponseDto
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
-    })
-    @UseGuards(AuthGuard())
-    @Post(':id/i_love_lsd')
-    async acceptUserDeletedStatus(
-        @Param() params: IdParamDto,
-        @ReqUser() user: SendUserDto
-    ) {
-        await this.debtsSingleService.acceptUserDeletedStatus(user, params.id);
+  @ApiResponse({
+      status: 201,
+      type: DebtResponseDto
+  })
+  @ApiResponse({
+      status: 400,
+      description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Post()
+  async createSingleDebt(
+      @Body() createPayload: CreateDebtSingleDto,
+      @Req() req: Request,
+      @ReqUser() user: SendUserDto
+  ) {
+    const newDebt = await this.debtsSingleService.createSingleDebt(
+      user.id,
+      createPayload.userName,
+      createPayload.currency
+    );
 
-        return this.debtsService.getDebtsById(user.id, params.id);
-    }
+    return this.debtsService.getDebtsById(user.id, newDebt._id);
+  }
 
 
+/**
+ *
+ * Endpoint for user to aknowledge and accept deleted debt
+ *
+ */
+  @ApiResponse({
+      status: 201,
+      type: DebtResponseDto
+  })
+  @ApiResponse({
+      status: 400,
+      description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Post(':id/i_love_lsd')
+  async acceptUserDeletedStatus(
+      @Param() params: IdParamDto,
+      @ReqUser() user: SendUserDto
+  ) {
+      await this.debtsSingleService.acceptUserDeletedStatus(user, params.id);
 
-    @ApiResponse({
-        status: 201,
-        type: DebtResponseDto
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
-    })
-    @UseGuards(AuthGuard())
-    @Post(':id/connect_user')
-    async connectUserToSingleDebt(
-        @Param() params: IdParamDto,
-        @Body() connectUser: ConnectUserDto,
-        @ReqUser() user: SendUserDto
-    ) {
-        if(user.id.toString() === connectUser.userId.toString()) {
-            throw new HttpException('You can\'t connect yourself', HttpStatus.BAD_REQUEST);
-        }
-
-        await this.debtsSingleService.connectUserToSingleDebt(user, connectUser.userId, params.id);
-
-        return this.debtsService.getDebtsById(user.id, params.id);
-    }
+      return this.debtsService.getDebtsById(user.id, params.id);
+  }
 
 
 
-    @ApiResponse({
-        status: 201,
-        type: DebtResponseDto
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
-    })
-    @UseGuards(AuthGuard())
-    @Post(':id/connect_user/accept')
-    async acceptUserConnection(
-        @Param() params: IdParamDto,
-        @ReqUser() user: SendUserDto
-    ) {
-        await this.debtsSingleService.acceptUserConnectionToSingleDebt(user, params.id);
+  @ApiResponse({
+      status: 201,
+      type: DebtResponseDto
+  })
+  @ApiResponse({
+      status: 400,
+      description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Post(':id/connect_user')
+  async connectUserToSingleDebt(
+      @Param() params: IdParamDto,
+      @Body() connectUser: ConnectUserDto,
+      @ReqUser() user: SendUserDto
+  ) {
+      if(user.id.toString() === connectUser.userId.toString()) {
+          throw new HttpException('You can\'t connect yourself', HttpStatus.BAD_REQUEST);
+      }
 
-        return this.debtsService.getDebtsById(user.id, params.id);
-    }
+      await this.debtsSingleService.connectUserToSingleDebt(user, connectUser.userId, params.id);
+
+      return this.debtsService.getDebtsById(user.id, params.id);
+  }
 
 
-    @ApiResponse({
-        status: 201,
-        type: DebtResponseDto,
-        isArray: true
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Bad Request'
-    })
-    @UseGuards(AuthGuard())
-    @Post(':id/connect_user/decline')
-    async declineUserConnection(
-        @Param() params: IdParamDto,
-        @ReqUser() user: SendUserDto
-    ) {
-        await this.debtsSingleService.declineUserConnectionToSingleDebt(user, params.id);
 
-        return this.debtsService.getAllUserDebts(user.id);
-    }
+  @ApiResponse({
+      status: 201,
+      type: DebtResponseDto
+  })
+  @ApiResponse({
+      status: 400,
+      description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Post(':id/connect_user/accept')
+  async acceptUserConnection(
+      @Param() params: IdParamDto,
+      @ReqUser() user: SendUserDto
+  ) {
+      await this.debtsSingleService.acceptUserConnectionToSingleDebt(user, params.id);
+
+      return this.debtsService.getDebtsById(user.id, params.id);
+  }
+
+
+  @ApiResponse({
+      status: 201,
+      type: DebtResponseDto,
+      isArray: true
+  })
+  @ApiResponse({
+      status: 400,
+      description: 'Bad Request'
+  })
+  @UseGuards(AuthGuard())
+  @Post(':id/connect_user/decline')
+  async declineUserConnection(
+      @Param() params: IdParamDto,
+      @ReqUser() user: SendUserDto
+  ) {
+      await this.debtsSingleService.declineUserConnectionToSingleDebt(user, params.id);
+
+      return this.debtsService.getAllUserDebts(user.id);
+  }
 }

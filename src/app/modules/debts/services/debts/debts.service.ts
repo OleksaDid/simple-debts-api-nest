@@ -1,13 +1,10 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {Id} from '../../../../common/types/types';
 import {DebtsListDto} from '../../models/debt.dto';
-import {DebtsAccountType} from '../../models/debts-account-type.enum';
 import {SendUserDto} from '../../../users/models/user.dto';
 import {DebtsStatus} from '../../models/debts-status.enum';
 import {DebtResponseDto} from '../../models/debt-response.dto';
 import {OperationResponseDto} from '../../../operations/models/operation-response.dto';
-import {DebtsMultipleService} from '../debts-multiple/debts-multiple.service';
-import {DebtsSingleService} from '../debts-single/debts-single.service';
 import {InjectModel} from 'nestjs-typegoose';
 import {User} from '../../../users/models/user';
 import {Debt} from '../../models/debt';
@@ -23,8 +20,6 @@ export class DebtsService {
       @InjectModel(User) private readonly User: ModelType<User>,
       @InjectModel(Debt) private readonly Debts: ModelType<Debt>,
       @InjectModel(Operation) private readonly Operation: ModelType<Operation>,
-      private readonly multipleDebtsService: DebtsMultipleService,
-      private readonly singleDebtsService: DebtsSingleService
   ) {}
 
 
@@ -61,31 +56,6 @@ export class DebtsService {
       }
 
       return this.formatDebt(debt, userId, true);
-  };
-
-  async deleteDebt(user: SendUserDto, debtsId: Id): Promise<DebtsAccountType> {
-    let debt: InstanceType<Debt>;
-
-    try {
-      debt = await this.Debts
-        .findOne({_id: debtsId, users: {$in: [user.id]}})
-        .populate({ path: 'users', select: 'name picture'});
-
-      if(!debt) {
-        throw 'Debt not found';
-      }
-    } catch(err) {
-      throw new HttpException('Debt not found', HttpStatus.BAD_REQUEST);
-    }
-
-
-    if(debt.type === DebtsAccountType.SINGLE_USER) {
-        await this.singleDebtsService.deleteSingleDebt(debt, user.id);
-    } else if(debt.type === DebtsAccountType.MULTIPLE_USERS) {
-        await this.multipleDebtsService.deleteMultipleDebts(debt, user);
-    }
-
-    return debt.type;
   };
 
 
