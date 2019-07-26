@@ -73,7 +73,7 @@ export class OperationsService {
       debt,
       user.id,
       `New operation`,
-      `${user.name} has ${user.id === moneyReceiver ? 'borrowed' : 'owed you'} ${moneyAmount}${debt.currency}`
+      `${user.name} has ${user.id === moneyReceiver ? 'borrowed' : 'lent you'} ${moneyAmount}${debt.currency}: ${description}`
     );
 
     return debt;
@@ -113,38 +113,45 @@ export class OperationsService {
     return updatedDebt;
   };
 
-  async acceptOperation(userId: Id, operationId: Id): Promise<InstanceType<Debt>> {
+  async acceptOperation(user: SendUserDto, operationId: Id): Promise<InstanceType<Debt>> {
 
-      const operation = await this.Operation
-          .findOneAndUpdate(
-              {
-                  _id: operationId,
-                  statusAcceptor: userId,
-                  status: OperationStatus.CREATION_AWAITING
-              },
-              { status: OperationStatus.UNCHANGED, statusAcceptor: null }
-          );
+    const operation = await this.Operation
+        .findOneAndUpdate(
+            {
+                _id: operationId,
+                statusAcceptor: user.id,
+                status: OperationStatus.CREATION_AWAITING
+            },
+            { status: OperationStatus.UNCHANGED, statusAcceptor: null }
+        );
 
 
-      if(!operation) {
-          throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
-      }
+    if(!operation) {
+        throw new HttpException('Operation not found', HttpStatus.BAD_REQUEST);
+    }
 
-      const debt = await this.Debts
-          .findById(operation.debtsId)
-          .populate({
-              path: 'moneyOperations',
-              select: 'status',
-          });
+    const debt = await this.Debts
+        .findById(operation.debtsId)
+        .populate({
+            path: 'moneyOperations',
+            select: 'status',
+        });
 
-      if(debt.moneyOperations.every(operation =>  (operation as Operation).status !== OperationStatus.CREATION_AWAITING)) {
-          debt.status = DebtsStatus.UNCHANGED;
-          debt.statusAcceptor = null;
-      }
+    if(debt.moneyOperations.every(operation =>  (operation as Operation).status !== OperationStatus.CREATION_AWAITING)) {
+        debt.status = DebtsStatus.UNCHANGED;
+        debt.statusAcceptor = null;
+    }
 
-      await debt.calculateSummary();
+    await debt.calculateSummary();
 
-      return debt;
+    this._notificationsService.sendDebtNotification(
+      debt,
+      user.id,
+      `Operation accepted`,
+      `${user.name} has accepted ${operation.moneyAmount}${debt.currency} operation: ${operation.description}`
+    );
+
+    return debt;
   };
 
   async declineOperation(user: SendUserDto, operationId: Id): Promise<InstanceType<Debt>> {
@@ -189,7 +196,7 @@ export class OperationsService {
       debt,
       user.id,
       `Operation canceled`,
-      `${user.name} has canceled ${operation.moneyAmount}${debt.currency} operation`
+      `${user.name} has canceled ${operation.moneyAmount}${debt.currency} operation: ${operation.description}`
     );
 
     return debt;
