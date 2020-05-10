@@ -22,7 +22,7 @@ export class StorageService {
       expires: new Date('12-12-2050')
     });
 
-    return fileUrl;
+    return fileUrl + '&timestamp=' + Date.now();
   }
 
   async deleteFile(fileName: string): Promise<void> {
