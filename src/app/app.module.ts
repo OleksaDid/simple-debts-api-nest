@@ -7,6 +7,7 @@ import {HealthModule} from './modules/health/health.module';
 import {ConfigModule} from './modules/config/config.module';
 import {ConfigService} from './modules/config/services/config.service';
 import {TypegooseModule} from 'nestjs-typegoose';
+import { CommonModule } from './modules/common/common.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import {TypegooseModule} from 'nestjs-typegoose';
     OperationsModule,
     DebtsModule,
     HealthModule,
+    CommonModule,
   ]
 })
 export class ApplicationModule {}
