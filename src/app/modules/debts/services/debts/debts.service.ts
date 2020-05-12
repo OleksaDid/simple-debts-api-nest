@@ -36,7 +36,7 @@ export class DebtsService {
           .sort({status: 1, updatedAt: -1});
 
       return new DebtsListDto(
-          debts.map(debt => this.formatDebt(debt, userId, false)),
+          debts.map(debt => this.formatDebt(debt, userId, true)),
           userId
       );
   }
