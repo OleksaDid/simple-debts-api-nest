@@ -90,6 +90,52 @@ describe('Users (e2e)', () => {
   });
 
 
+  describe('GET /users/:id', () => {
+
+    it('should return 401 error if token is invalid', () => {
+      return authHelper.testAuthorizationGuard(
+        request(app.getHttpServer()).get('/users/' + user.user.id)
+      );
+    });
+
+    it('should return an error if there is an invalid id', () => {
+      const promises = [];
+
+      const ids = [
+        ';lkhjvghb',
+        'kek',
+        null,
+        234245345
+      ];
+
+      ids.forEach(id => {
+        promises.push(request(app.getHttpServer()).get('/users/' + id).set('Authorization', 'Bearer ' + user.token));
+      });
+
+      return Promise.all(promises)
+        .then(responses => {
+          responses.forEach(res => {
+            expect(res.statusCode).toBe(400);
+          });
+        });
+    });
+
+    it('should return user', () => {
+      return request(app.getHttpServer())
+        .get('/users/' + user.user.id)
+        .set('Authorization', 'Bearer ' + user.token)
+        .expect(200)
+        .then(res => {
+          const resUser = res.body;
+
+          expect(resUser).toHaveProperty('id', user.user.id);
+          expect(resUser).toHaveProperty('name');
+          expect(resUser).toHaveProperty('picture');
+        });
+    });
+  });
+
+
   describe('POST /users', () => {
     const updateData = {name: chance.name()};
 

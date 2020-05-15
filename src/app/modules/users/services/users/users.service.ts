@@ -35,6 +35,16 @@ export class UsersService {
       .map(user => new SendUserDto(user.id, user.name, user.picture));
   }
 
+  async getUserById(userId: Id): Promise<SendUserDto> {
+    const user = await this.User.findById(userId);
+
+    if(!user) {
+      throw new HttpException('User is not found', HttpStatus.NOT_FOUND);
+    }
+
+    return new SendUserDto(user.id, user.name, user.picture);
+  }
+
   async updateUserData(user: SendUserDto, userInfo: UpdateUserDataDto, file?: Express.Multer.File): Promise<SendUserDto> {
     if(file) {
       await this._deleteUserImage(user.id);

@@ -36,7 +36,7 @@ export class DebtsService {
           .sort({status: 1, updatedAt: -1});
 
       return new DebtsListDto(
-          debts.map(debt => this.formatDebt(debt, userId, true)),
+          debts.map(debt => this.formatDebt(debt, userId, false)),
           userId
       );
   }
@@ -85,6 +85,8 @@ export class DebtsService {
               operation.statusAcceptor ? operation.statusAcceptor.toString() : null,
               operation.cancelledBy ? operation.cancelledBy.toString() : null
             ));
+    } else {
+      operations = null;
     }
 
     return new DebtResponseDto(

@@ -1,12 +1,12 @@
 import {
-    Body,
-    Controller,
-    Get,
-    Post,
-    Query, Req,
-    UploadedFile,
-    UseGuards,
-    UseInterceptors
+  Body,
+  Controller,
+  Get, Param,
+  Post,
+  Query, Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors
 } from '@nestjs/common';
 import {AuthGuard} from '@nestjs/passport';
 import {UsersService} from '../../services/users/users.service';
@@ -17,6 +17,7 @@ import {ApiBearerAuth, ApiResponse, ApiUseTags, ApiImplicitFile, ApiConsumes} fr
 import {FileInterceptor} from '@nestjs/platform-express';
 import {Request} from 'express';
 import {UserTokenDto} from '../../models/user-token.dto';
+import {IdParamDto} from '../../../../common/classes/id-param.dto';
 
 
 @ApiBearerAuth()
@@ -46,6 +47,23 @@ export class UsersController {
     @ReqUser() user: SendUserDto
   ) {
     return this.usersService.getUsersByName(userNameDto.name, user.id);
+  }
+
+
+  @ApiResponse({
+    status: 200,
+    type: SendUserDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Not found'
+  })
+  @UseGuards(AuthGuard())
+  @Get(':id')
+  getUserById(
+    @Param() params: IdParamDto,
+  ) {
+    return this.usersService.getUserById(params.id);
   }
 
 
