@@ -164,6 +164,7 @@ export class DebtsSingleService {
     }
 
     debt.status = DebtsStatus.CONNECT_USER;
+    debt.connectedUser = connectUserId as any;
     debt.statusAcceptor = connectUserId as any;
 
     await debt.save();
@@ -200,6 +201,7 @@ export class DebtsSingleService {
 
     debt.status = DebtsStatus.UNCHANGED;
     debt.type = DebtsAccountType.MULTIPLE_USERS;
+    debt.connectedUser = null;
     debt.statusAcceptor = null;
 
     if(debt.moneyReceiver === virtualUserId) {
@@ -258,7 +260,7 @@ export class DebtsSingleService {
             {statusAcceptor: user.id}
           ]
         },
-        {status: DebtsStatus.UNCHANGED, statusAcceptor: null});
+        {status: DebtsStatus.UNCHANGED, statusAcceptor: null, connectedUser: null});
 
     if(!debt) {
       throw new HttpException('Debt is not found', HttpStatus.BAD_REQUEST);

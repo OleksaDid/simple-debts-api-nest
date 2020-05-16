@@ -20,7 +20,7 @@ export class UsersService {
   ) {}
 
 
-
+  // TODO: add query params for add debt & connect user filtering
   async getUsersByName(name: string, userId: Id): Promise<SendUserDto[]> {
     const users = await this.User
       .find({

@@ -15,6 +15,9 @@ export class Debt extends Typegoose implements BasicDocumentFields {
   @arrayProp({itemsRef: User, required: true})
   users: Ref<User>[];
 
+  @prop({ref: User, default: null})
+  connectedUser: Ref<User>;
+
   @prop({required: true, enum: DebtsAccountType})
   type: DebtsAccountType;
 

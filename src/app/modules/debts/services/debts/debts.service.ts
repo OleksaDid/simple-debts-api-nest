@@ -32,6 +32,7 @@ export class DebtsService {
                   {status: DebtsStatus.CONNECT_USER, statusAcceptor: userId}
               ]
           })
+          .populate({path: 'connectedUser', select: 'name picture virtual'})
           .populate({ path: 'users', select: 'name picture virtual'})
           .sort({status: 1, updatedAt: -1});
 
@@ -49,6 +50,7 @@ export class DebtsService {
               select: 'date moneyAmount moneyReceiver description status statusAcceptor',
               options: { sort: { 'date': -1 } }
           })
+          .populate({path: 'connectedUser', select: 'name picture virtual'})
           .populate({ path: 'users', select: 'name picture virtual'});
 
       if(!debt) {

@@ -1123,7 +1123,7 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    it('should change debts status to CONNECT_USER & status acceptor to userId', () => {
+    it('should change debts status to CONNECT_USER && status acceptor to userId && user to connected user', () => {
       return request(app.getHttpServer())
         .post('/debts/single/' + connectUserDebt.id + '/connect_user')
         .send({userId: user3.user.id})
@@ -1132,6 +1132,10 @@ describe('Debts (e2e)', () => {
         .then(debt => {
           expect(debt.body).toHaveProperty('status', 'CONNECT_USER');
           expect(debt.body).toHaveProperty('statusAcceptor', user3.user.id);
+          expect(debt.body).toHaveProperty('user');
+          expect(debt.body['user']).toHaveProperty('id', user3.user.id);
+          expect(debt.body['user']).toHaveProperty('name', user3.user.name);
+          expect(debt.body['user']).toHaveProperty('picture', user3.user.picture);
           checkIsObjectMatchesDebtsModel(debt.body, connectUserDebt, false);
         });
     });
@@ -1173,6 +1177,10 @@ describe('Debts (e2e)', () => {
           expect(debt).toBeTruthy();
           expect(debt).toHaveProperty('status', 'CONNECT_USER');
           expect(debt).toHaveProperty('statusAcceptor', user3.user.id);
+          expect(debt).toHaveProperty('user');
+          expect(debt.user).toHaveProperty('id', user1.user.id);
+          expect(debt.user).toHaveProperty('name', user1.user.name);
+          expect(debt.user).toHaveProperty('picture', user1.user.picture);
         });
     });
 
@@ -1186,6 +1194,10 @@ describe('Debts (e2e)', () => {
           expect(debt).toBeTruthy();
           expect(debt).toHaveProperty('status', 'CONNECT_USER');
           expect(debt).toHaveProperty('statusAcceptor', user3.user.id);
+          expect(debt).toHaveProperty('user');
+          expect(debt.user).toHaveProperty('id', user1.user.id);
+          expect(debt.user).toHaveProperty('name', user1.user.name);
+          expect(debt.user).toHaveProperty('picture', user1.user.picture);
         });
     });
   });
