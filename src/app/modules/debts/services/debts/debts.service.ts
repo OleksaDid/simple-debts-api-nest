@@ -65,8 +65,9 @@ export class DebtsService {
 
   private formatDebt(debt: InstanceType<Debt>, userId: Id, saveOperations: boolean) {
     // make preview for user connect
+    let userToChange;
     if(debt.status === DebtsStatus.CONNECT_USER) {
-      const userToChange = debt.users.find(user => (user as InstanceType<User>).virtual) as InstanceType<User>;
+      userToChange = debt.users.find(user => (user as InstanceType<User>).virtual) as InstanceType<User>;
       debt = JSON.parse(JSON.stringify(debt).replace(userToChange._id.toString(), (debt.connectedUser as InstanceType<User>)._id.toString()));
       debt.moneyOperations= JSON.parse(JSON.stringify(debt.moneyOperations).replace(userToChange._id.toString(), (debt.connectedUser as InstanceType<User>)._id.toString()));
     }
@@ -99,7 +100,11 @@ export class DebtsService {
         debt.status,
         debt.statusAcceptor ? debt.statusAcceptor.toString() : null,
         debt.summary,
-        debt.moneyReceiver ? debt.moneyReceiver.toString() : null,
+        debt.moneyReceiver
+          ? !!userToChange && debt.moneyReceiver.toString() === userToChange._id.toString()
+            ? (debt.connectedUser as InstanceType<User>)._id.toString()
+            : debt.moneyReceiver.toString()
+          : null,
         operations
     );
   }

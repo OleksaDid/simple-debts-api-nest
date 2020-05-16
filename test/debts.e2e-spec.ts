@@ -1236,6 +1236,8 @@ describe('Debts (e2e)', () => {
           expect(debt.moneyOperations
             .every(operation => operation.moneyReceiver == user1.user.id || operation.moneyReceiver == user3.user.id))
             .toBeTruthy();
+          expect(JSON.stringify(connectUserDebt.moneyOperations).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
+          expect(JSON.stringify(connectUserDebt).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
         });
     });
   });
