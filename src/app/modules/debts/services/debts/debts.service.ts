@@ -32,7 +32,7 @@ export class DebtsService {
                   {status: DebtsStatus.CONNECT_USER, statusAcceptor: userId}
               ]
           })
-          .populate({path: 'connectedUser', select: 'name picture virtual'})
+          .populate({path: 'connectedUser', select: 'name picture'})
           .populate({ path: 'users', select: 'name picture virtual'})
           .sort({status: 1, updatedAt: -1});
 
@@ -50,7 +50,7 @@ export class DebtsService {
               select: 'date moneyAmount moneyReceiver description status statusAcceptor',
               options: { sort: { 'date': -1 } }
           })
-          .populate({path: 'connectedUser', select: 'name picture virtual'})
+          .populate({path: 'connectedUser', select: 'name picture'})
           .populate({ path: 'users', select: 'name picture virtual'});
 
       if(!debt) {
@@ -65,10 +65,10 @@ export class DebtsService {
 
   private formatDebt(debt: InstanceType<Debt>, userId: Id, saveOperations: boolean) {
     // make preview for user connect
-    if(debt.status === DebtsStatus.CONNECT_USER && debt.statusAcceptor.toString() === userId) {
-        const userToChange = debt.users.find(user => (user as InstanceType<User>).virtual) as InstanceType<User>;
-
-        debt = JSON.parse(JSON.stringify(debt).replace(userToChange._id.toString(), userId.toString()));
+    if(debt.status === DebtsStatus.CONNECT_USER) {
+      const userToChange = debt.users.find(user => (user as InstanceType<User>).virtual) as InstanceType<User>;
+      debt = JSON.parse(JSON.stringify(debt).replace(userToChange._id.toString(), (debt.connectedUser as InstanceType<User>)._id.toString()));
+      debt.moneyOperations= JSON.parse(JSON.stringify(debt.moneyOperations).replace(userToChange._id.toString(), (debt.connectedUser as InstanceType<User>)._id.toString()));
     }
 
     const user = DebtsHelper.getAnotherDebtUserModel(debt, userId);

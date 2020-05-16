@@ -994,16 +994,44 @@ describe('Debts (e2e)', () => {
   });
 
   describe('POST /debts/single/:id/connect_user', () => {
+    let operationPayload1 = {
+      debtsId: null,
+      moneyAmount: 300,
+      moneyReceiver: null,
+      description: 'test'
+    };
+
+    let operationPayload2 = {
+      debtsId: null,
+      moneyAmount: 500,
+      moneyReceiver: null,
+      description: 'test2'
+    };
+
 
     beforeAll(async () => {
-      return request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/debts/single')
         .send({userName: 'Valera new', currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201)
         .then(({body: debt}) => {
           connectUserDebt = debt;
           connectUserDebtVirtualUser = debt.user;
         });
+
+      operationPayload1.debtsId = connectUserDebt.id;
+      operationPayload1.moneyReceiver = user1.user.id;
+      operationPayload2.debtsId = connectUserDebt.id;
+      operationPayload2.moneyReceiver = connectUserDebtVirtualUser.id;
+
+      return Promise.all(
+        [operationPayload1, operationPayload2].map(operation => request(app.getHttpServer())
+          .post('/operations')
+          .send(Object.assign({}, operation))
+          .set('Authorization', `Bearer ${user1.token}`)
+          .expect(201))
+      );
     });
 
 
@@ -1130,12 +1158,17 @@ describe('Debts (e2e)', () => {
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
         .then(debt => {
+          connectUserDebt = debt.body;
           expect(debt.body).toHaveProperty('status', 'CONNECT_USER');
           expect(debt.body).toHaveProperty('statusAcceptor', user3.user.id);
           expect(debt.body).toHaveProperty('user');
           expect(debt.body['user']).toHaveProperty('id', user3.user.id);
           expect(debt.body['user']).toHaveProperty('name', user3.user.name);
           expect(debt.body['user']).toHaveProperty('picture', user3.user.picture);
+          expect(debt.body['moneyOperations'].length).toBe(2);
+          expect(debt.body['moneyOperations']
+            .every(operation => operation.moneyReceiver == user1.user.id || operation.moneyReceiver == user3.user.id))
+            .toBeTruthy();
           checkIsObjectMatchesDebtsModel(debt.body, connectUserDebt, false);
         });
     });
@@ -1181,6 +1214,7 @@ describe('Debts (e2e)', () => {
           expect(debt.user).toHaveProperty('id', user1.user.id);
           expect(debt.user).toHaveProperty('name', user1.user.name);
           expect(debt.user).toHaveProperty('picture', user1.user.picture);
+          expect(debt.moneyOperations).toBeNull();
         });
     });
 
@@ -1198,6 +1232,10 @@ describe('Debts (e2e)', () => {
           expect(debt.user).toHaveProperty('id', user1.user.id);
           expect(debt.user).toHaveProperty('name', user1.user.name);
           expect(debt.user).toHaveProperty('picture', user1.user.picture);
+          expect(debt.moneyOperations.length).toBe(2);
+          expect(debt.moneyOperations
+            .every(operation => operation.moneyReceiver == user1.user.id || operation.moneyReceiver == user3.user.id))
+            .toBeTruthy();
         });
     });
   });
@@ -1298,8 +1336,9 @@ describe('Debts (e2e)', () => {
     });
 
     it('should change virtual user id on user id everywhere (moneyReceiver)', () => {
-      expect(JSON.stringify(connectUserDebt).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
       expect(JSON.stringify(connectUserDebt).indexOf(user3.user.id) !== -1);
+      expect(JSON.stringify(connectUserDebt.moneyOperations).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
+      expect(JSON.stringify(connectUserDebt).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
     });
 
     it('should delete virtual user from db', () => {

@@ -204,7 +204,7 @@ export class DebtsSingleService {
     debt.connectedUser = null;
     debt.statusAcceptor = null;
 
-    if(debt.moneyReceiver === virtualUserId) {
+    if(!!debt.moneyReceiver && debt.moneyReceiver.toString() === virtualUserId.toString()) {
       debt.moneyReceiver = user.id;
     }
 
@@ -217,8 +217,14 @@ export class DebtsSingleService {
         this.Operation
           .findById(operation)
           .then((op: InstanceType<Operation>) => {
-            if(op.moneyReceiver === virtualUserId) {
+            if(!!op.moneyReceiver && op.moneyReceiver.toString() === virtualUserId.toString()) {
               op.moneyReceiver = user.id as any;
+            }
+            if(!!op.cancelledBy && op.cancelledBy.toString() === virtualUserId.toString()) {
+              op.cancelledBy = user.id as any;
+            }
+            if(!!op.statusAcceptor && op.statusAcceptor.toString() === virtualUserId.toString()) {
+              op.statusAcceptor = user.id as any;
             }
 
             return op.save();
