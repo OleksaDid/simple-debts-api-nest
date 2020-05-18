@@ -29,7 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, AuthStrategy.JWT_STR
     async validate(jwt_payload: JwtPayload): Promise<SendUserDto> {
 
       if(jwt_payload.exp < DateHelper.getNowDateInSeconds()) {
-          throw new HttpException('Access Token Expired', HttpStatus.BAD_REQUEST);
+          throw new HttpException('Access Token Expired', HttpStatus.UNAUTHORIZED);
       }
 
       const user = await this.User.findById(jwt_payload.id).exec();
