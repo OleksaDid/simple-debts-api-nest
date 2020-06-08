@@ -413,7 +413,7 @@ describe('Debts (e2e)', () => {
 
     it('should return 401 error if token is invalid', () => {
       return authHelper.testAuthorizationGuard(
-        request(app.getHttpServer()).delete(`/debts/single/${singleDebt.id}`)
+        request(app.getHttpServer()).delete(`/debts/${singleDebt.id}`)
       );
     });
 
@@ -428,7 +428,7 @@ describe('Debts (e2e)', () => {
       ];
 
       params.forEach(param => {
-        promises.push(request(app.getHttpServer()).delete('/debts/single/' + param).set('Authorization', 'Bearer ' + user1.token));
+        promises.push(request(app.getHttpServer()).delete('/debts/' + param).set('Authorization', 'Bearer ' + user1.token));
       });
 
       return Promise.all(promises).then(responses => {
@@ -442,7 +442,7 @@ describe('Debts (e2e)', () => {
     it('should return 400 if invalid param is set', () => {
 
       return request(app.getHttpServer())
-        .delete('/debts/single/' + 'pj2i4hui3gyfu')
+        .delete('/debts/' + 'pj2i4hui3gyfu')
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
@@ -453,7 +453,7 @@ describe('Debts (e2e)', () => {
     it('should return null', () => {
 
       return request(app.getHttpServer())
-        .delete('/debts/single/' + singleDebt.id)
+        .delete('/debts/' + singleDebt.id)
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(200)
         .then(({body}) => expect(Object.keys(body).length).toBe(0));
@@ -476,7 +476,7 @@ describe('Debts (e2e)', () => {
     it('should remove virtual user from db if no more debts with virt user left', async () => {
 
       await request(app.getHttpServer())
-        .delete('/debts/single/' + singleDebt2.id)
+        .delete('/debts/' + singleDebt2.id)
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(200)
         .then(({body}) => expect(Object.keys(body).length).toBe(0));
@@ -706,7 +706,7 @@ describe('Debts (e2e)', () => {
   });
 
 
-  describe('DELETE /debts/multiple/:id', () => {
+  describe('DELETE /debts/:id (multiple)', () => {
     let deletedUserDebt;
 
     beforeAll(async () => {
@@ -740,7 +740,7 @@ describe('Debts (e2e)', () => {
 
     it('should return 401 error if token is invalid', () => {
       return authHelper.testAuthorizationGuard(
-        request(app.getHttpServer()).delete(`/debts/multiple/${multipleDebt.id}`)
+        request(app.getHttpServer()).delete(`/debts/${multipleDebt.id}`)
       );
     });
 
@@ -755,7 +755,7 @@ describe('Debts (e2e)', () => {
       ];
 
       params.forEach(param => {
-        promises.push(request(app.getHttpServer()).delete('/debts/multiple/' + param).set('Authorization', 'Bearer ' + user1.token));
+        promises.push(request(app.getHttpServer()).delete('/debts/' + param).set('Authorization', 'Bearer ' + user1.token));
       });
 
       return Promise.all(promises).then(responses => {
@@ -769,7 +769,7 @@ describe('Debts (e2e)', () => {
     it('should return 400 if invalid param is set', () => {
 
       return request(app.getHttpServer())
-        .delete('/debts/multiple/' + 'y34ygv4h3')
+        .delete('/debts/' + 'y34ygv4h3')
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(400)
         .then(resp => {
@@ -780,7 +780,7 @@ describe('Debts (e2e)', () => {
     it('should reject user if he is not a user of this Debt entity', () => {
 
       return request(app.getHttpServer())
-        .delete('/debts/multiple/' + multipleDebt.id)
+        .delete('/debts/' + multipleDebt.id)
         .set('Authorization', 'Bearer ' + user3.token)
         .expect(400)
         .then(resp => {
@@ -790,7 +790,7 @@ describe('Debts (e2e)', () => {
 
     it('should return all debts to user who\'s deleted', () => {
       return request(app.getHttpServer())
-        .delete('/debts/multiple/' + multipleDebt.id)
+        .delete('/debts/' + multipleDebt.id)
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(200)
         .then(({body: debt}) => checkIsObjectMatchesDebtsModel(debt, multipleDebt, false));
@@ -866,7 +866,7 @@ describe('Debts (e2e)', () => {
         .expect(201);
 
       await request(app.getHttpServer())
-        .delete('/debts/multiple/' + multipleDebt.id)
+        .delete('/debts/' + multipleDebt.id)
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(200);
 
@@ -969,7 +969,7 @@ describe('Debts (e2e)', () => {
         })
         .then(() => {
           return request(app.getHttpServer())
-            .delete('/debts/multiple/' + multipleDebt.id)
+            .delete('/debts/' + multipleDebt.id)
             .set('Authorization', 'Bearer ' + user1.token);
         })
         .then(() => {

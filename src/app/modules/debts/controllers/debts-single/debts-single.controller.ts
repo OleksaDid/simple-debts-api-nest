@@ -25,23 +25,6 @@ export class DebtsSingleController {
 
 
   @ApiResponse({
-    status: 200
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request'
-  })
-  @UseGuards(AuthGuard())
-  @Delete(':id')
-  async deleteDebt(
-    @Param() params: IdParamDto,
-    @ReqUser() user: SendUserDto
-  ) {
-    return this.debtsSingleService.deleteSingleDebt(params.id, user.id);
-  }
-
-
-  @ApiResponse({
       status: 201,
       type: DebtResponseDto
   })

@@ -24,26 +24,6 @@ export class DebtsMultipleController {
 
 
 
-
-  @ApiResponse({
-    status: 200,
-    type: DebtResponseDto
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request'
-  })
-  @UseGuards(AuthGuard())
-  @Delete(':id')
-  async deleteDebt(
-    @Param() params: IdParamDto,
-    @ReqUser() user: SendUserDto
-  ) {
-    await this.debtsMultipleService.deleteMultipleDebts(params.id, user);
-
-    return this.debtsService.getDebtsById(user.id, params.id);
-  }
-
   @ApiResponse({
     status: 201,
     type: DebtResponseDto
