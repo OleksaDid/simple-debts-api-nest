@@ -20,6 +20,7 @@ import * as dotenv from 'dotenv';
 import {DebtResponseDto} from '../src/app/modules/debts/models/debt-response.dto';
 import {OperationStatus} from '../src/app/modules/operations/models/operation-status.enum';
 import {OperationResponseDto} from '../src/app/modules/operations/models/operation-response.dto';
+import {RequestHelper} from './helpers/request-helper';
 
 const users = require('./fixtures/debts-users');
 const ObjectId = mongoose.Types.ObjectId;
@@ -487,14 +488,10 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    it('should remove virtual user\'s image from server', () => {
-      jest.setTimeout(150000);
-
-      return request(app.getHttpServer())
-        .get('/static/images/' + singleDebt.user.picture.match(/[^\/]*$/)[0])
-        .set('Authorization', 'Bearer ' + user1.token)
-        .expect(404)
-        .then(({body}) => expect(body.error).toBe('This file doesn\'t exist'));
+    it('should remove virtual user\'s image from server', async () => {
+      return RequestHelper
+        .getImage(singleDebt.user.picture)
+        .expect(({status}) => expect(status).toBeGreaterThanOrEqual(400));
     });
   });
 
@@ -709,7 +706,7 @@ describe('Debts (e2e)', () => {
   });
 
 
-  describe('DELETE /debts/:id', () => {
+  describe('DELETE /debts/:id (multiple)', () => {
     let deletedUserDebt;
 
     beforeAll(async () => {
@@ -997,16 +994,44 @@ describe('Debts (e2e)', () => {
   });
 
   describe('POST /debts/single/:id/connect_user', () => {
+    let operationPayload1 = {
+      debtsId: null,
+      moneyAmount: 300,
+      moneyReceiver: null,
+      description: 'test'
+    };
+
+    let operationPayload2 = {
+      debtsId: null,
+      moneyAmount: 500,
+      moneyReceiver: null,
+      description: 'test2'
+    };
+
 
     beforeAll(async () => {
-      return request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/debts/single')
         .send({userName: 'Valera new', currency: 'UAH'})
         .set('Authorization', 'Bearer ' + user1.token)
+        .expect(201)
         .then(({body: debt}) => {
           connectUserDebt = debt;
           connectUserDebtVirtualUser = debt.user;
         });
+
+      operationPayload1.debtsId = connectUserDebt.id;
+      operationPayload1.moneyReceiver = user1.user.id;
+      operationPayload2.debtsId = connectUserDebt.id;
+      operationPayload2.moneyReceiver = connectUserDebtVirtualUser.id;
+
+      return Promise.all(
+        [operationPayload1, operationPayload2].map(operation => request(app.getHttpServer())
+          .post('/operations')
+          .send(Object.assign({}, operation))
+          .set('Authorization', `Bearer ${user1.token}`)
+          .expect(201))
+      );
     });
 
 
@@ -1126,15 +1151,24 @@ describe('Debts (e2e)', () => {
         });
     });
 
-    it('should change debts status to CONNECT_USER & status acceptor to userId', () => {
+    it('should change debts status to CONNECT_USER && status acceptor to userId && user to connected user', () => {
       return request(app.getHttpServer())
         .post('/debts/single/' + connectUserDebt.id + '/connect_user')
         .send({userId: user3.user.id})
         .set('Authorization', 'Bearer ' + user1.token)
         .expect(201)
         .then(debt => {
+          connectUserDebt = debt.body;
           expect(debt.body).toHaveProperty('status', 'CONNECT_USER');
           expect(debt.body).toHaveProperty('statusAcceptor', user3.user.id);
+          expect(debt.body).toHaveProperty('user');
+          expect(debt.body['user']).toHaveProperty('id', user3.user.id);
+          expect(debt.body['user']).toHaveProperty('name', user3.user.name);
+          expect(debt.body['user']).toHaveProperty('picture', user3.user.picture);
+          expect(debt.body['moneyOperations'].length).toBe(2);
+          expect(debt.body['moneyOperations']
+            .every(operation => operation.moneyReceiver == user1.user.id || operation.moneyReceiver == user3.user.id))
+            .toBeTruthy();
           checkIsObjectMatchesDebtsModel(debt.body, connectUserDebt, false);
         });
     });
@@ -1176,6 +1210,11 @@ describe('Debts (e2e)', () => {
           expect(debt).toBeTruthy();
           expect(debt).toHaveProperty('status', 'CONNECT_USER');
           expect(debt).toHaveProperty('statusAcceptor', user3.user.id);
+          expect(debt).toHaveProperty('user');
+          expect(debt.user).toHaveProperty('id', user1.user.id);
+          expect(debt.user).toHaveProperty('name', user1.user.name);
+          expect(debt.user).toHaveProperty('picture', user1.user.picture);
+          expect(debt.moneyOperations).toBeNull();
         });
     });
 
@@ -1189,6 +1228,16 @@ describe('Debts (e2e)', () => {
           expect(debt).toBeTruthy();
           expect(debt).toHaveProperty('status', 'CONNECT_USER');
           expect(debt).toHaveProperty('statusAcceptor', user3.user.id);
+          expect(debt).toHaveProperty('user');
+          expect(debt.user).toHaveProperty('id', user1.user.id);
+          expect(debt.user).toHaveProperty('name', user1.user.name);
+          expect(debt.user).toHaveProperty('picture', user1.user.picture);
+          expect(debt.moneyOperations.length).toBe(2);
+          expect(debt.moneyOperations
+            .every(operation => operation.moneyReceiver == user1.user.id || operation.moneyReceiver == user3.user.id))
+            .toBeTruthy();
+          expect(JSON.stringify(connectUserDebt.moneyOperations).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
+          expect(JSON.stringify(connectUserDebt).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
         });
     });
   });
@@ -1289,8 +1338,9 @@ describe('Debts (e2e)', () => {
     });
 
     it('should change virtual user id on user id everywhere (moneyReceiver)', () => {
-      expect(JSON.stringify(connectUserDebt).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
       expect(JSON.stringify(connectUserDebt).indexOf(user3.user.id) !== -1);
+      expect(JSON.stringify(connectUserDebt.moneyOperations).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
+      expect(JSON.stringify(connectUserDebt).indexOf(connectUserDebtVirtualUser.id) === -1).toBeTruthy();
     });
 
     it('should delete virtual user from db', () => {

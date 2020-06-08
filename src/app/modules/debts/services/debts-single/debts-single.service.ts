@@ -27,7 +27,7 @@ export class DebtsSingleService {
 
 
 
-  async createSingleDebt(creatorId: Id, userName: string, currency: string, host: string): Promise<InstanceType<Debt>> {
+  async createSingleDebt(creatorId: Id, userName: string, currency: string): Promise<InstanceType<Debt>> {
     const virtUser = new CreateVirtualUserDto(userName);
 
     const errors = await validate(virtUser);
@@ -63,7 +63,7 @@ export class DebtsSingleService {
     if(existingVirtUser) {
       userId = existingVirtUser._id;
     } else {
-      virtUserModel.picture = await this._usersService.generateUserIdenticon(virtUserModel.id, host);
+      virtUserModel.picture = await this._usersService.generateUserIdenticon(virtUserModel.id);
       await virtUserModel.save();
       userId = virtUserModel._id;
     }
@@ -71,7 +71,21 @@ export class DebtsSingleService {
     return this.Debts.create(new DebtDto(creatorId, userId, DebtsAccountType.SINGLE_USER, currency))
   }
 
-  async deleteSingleDebt(debt: InstanceType<Debt>, userId: Id): Promise<void> {
+  async deleteSingleDebt(debtsId: Id, userId: Id): Promise<void> {
+    let debt: InstanceType<Debt>;
+
+    try {
+      debt = await this.Debts
+        .findOne({_id: debtsId, users: {$in: [userId]}})
+        .populate({ path: 'users', select: 'name picture'});
+
+      if(!debt) {
+        throw 'Debt not found';
+      }
+    } catch(err) {
+      throw new HttpException('Debt not found', HttpStatus.BAD_REQUEST);
+    }
+
     const virtualUser = DebtsHelper.getAnotherDebtUserModel(debt, userId);
 
     await debt.remove();
@@ -150,6 +164,7 @@ export class DebtsSingleService {
     }
 
     debt.status = DebtsStatus.CONNECT_USER;
+    debt.connectedUser = connectUserId as any;
     debt.statusAcceptor = connectUserId as any;
 
     await debt.save();
@@ -186,9 +201,10 @@ export class DebtsSingleService {
 
     debt.status = DebtsStatus.UNCHANGED;
     debt.type = DebtsAccountType.MULTIPLE_USERS;
+    debt.connectedUser = null;
     debt.statusAcceptor = null;
 
-    if(debt.moneyReceiver === virtualUserId) {
+    if(!!debt.moneyReceiver && debt.moneyReceiver.toString() === virtualUserId.toString()) {
       debt.moneyReceiver = user.id;
     }
 
@@ -201,8 +217,14 @@ export class DebtsSingleService {
         this.Operation
           .findById(operation)
           .then((op: InstanceType<Operation>) => {
-            if(op.moneyReceiver === virtualUserId) {
+            if(!!op.moneyReceiver && op.moneyReceiver.toString() === virtualUserId.toString()) {
               op.moneyReceiver = user.id as any;
+            }
+            if(!!op.cancelledBy && op.cancelledBy.toString() === virtualUserId.toString()) {
+              op.cancelledBy = user.id as any;
+            }
+            if(!!op.statusAcceptor && op.statusAcceptor.toString() === virtualUserId.toString()) {
+              op.statusAcceptor = user.id as any;
             }
 
             return op.save();
@@ -244,7 +266,7 @@ export class DebtsSingleService {
             {statusAcceptor: user.id}
           ]
         },
-        {status: DebtsStatus.UNCHANGED, statusAcceptor: null});
+        {status: DebtsStatus.UNCHANGED, statusAcceptor: null, connectedUser: null});
 
     if(!debt) {
       throw new HttpException('Debt is not found', HttpStatus.BAD_REQUEST);

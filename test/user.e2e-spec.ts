@@ -7,6 +7,7 @@ import {DbHelper} from './helpers/db.helper';
 import {EnvField} from '../src/app/modules/config/models/env-field.enum';
 import * as mongoose from "mongoose";
 import {User} from '../src/app/modules/users/models/user';
+import {RequestHelper} from './helpers/request-helper';
 
 const credentials = require('./fixtures/test-user');
 let user: AuthUser;
@@ -89,6 +90,52 @@ describe('Users (e2e)', () => {
   });
 
 
+  describe('GET /users/:id', () => {
+
+    it('should return 401 error if token is invalid', () => {
+      return authHelper.testAuthorizationGuard(
+        request(app.getHttpServer()).get('/users/' + user.user.id)
+      );
+    });
+
+    it('should return an error if there is an invalid id', () => {
+      const promises = [];
+
+      const ids = [
+        ';lkhjvghb',
+        'kek',
+        null,
+        234245345
+      ];
+
+      ids.forEach(id => {
+        promises.push(request(app.getHttpServer()).get('/users/' + id).set('Authorization', 'Bearer ' + user.token));
+      });
+
+      return Promise.all(promises)
+        .then(responses => {
+          responses.forEach(res => {
+            expect(res.statusCode).toBe(400);
+          });
+        });
+    });
+
+    it('should return user', () => {
+      return request(app.getHttpServer())
+        .get('/users/' + user.user.id)
+        .set('Authorization', 'Bearer ' + user.token)
+        .expect(200)
+        .then(res => {
+          const resUser = res.body;
+
+          expect(resUser).toHaveProperty('id', user.user.id);
+          expect(resUser).toHaveProperty('name');
+          expect(resUser).toHaveProperty('picture');
+        });
+    });
+  });
+
+
   describe('POST /users', () => {
     const updateData = {name: chance.name()};
 
@@ -135,7 +182,9 @@ describe('Users (e2e)', () => {
         });
     });
 
-    it('should update image', () => {
+    it('should update image', async () => {
+      const {header} = await RequestHelper.getImage(user.user.picture);
+      const pictureBeforeModifDate = new Date(header['last-modified']).getTime();
 
       return request(app.getHttpServer())
         .post('/users')
@@ -143,11 +192,14 @@ describe('Users (e2e)', () => {
         .attach('image', __dirname + '/files/avatar.png')
         .field('name', updateData.name)
         .expect(201)
-        .then(({body}) => {
+        .then(async ({body}) => {
           expect(body).toHaveProperty('name', updateData.name);
 
           expect(body).toHaveProperty('picture');
-          expect(body.picture).not.toBe(user.user.picture);
+
+          const {header} = await RequestHelper.getImage(body.picture);
+          const pictureAfterModifDate = new Date(header['last-modified']).getTime();
+          expect(pictureAfterModifDate).not.toBe(pictureBeforeModifDate);
 
           expect(body).toHaveProperty('id', user.user.id);
         });

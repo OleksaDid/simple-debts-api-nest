@@ -70,7 +70,21 @@ export class DebtsMultipleService {
     return newDebt;
   }
 
-  async deleteMultipleDebts(debt: InstanceType<Debt>, user: SendUserDto): Promise<void> {
+  async deleteMultipleDebts(debtsId: Id, user: SendUserDto): Promise<void> {
+    let debt: InstanceType<Debt>;
+
+    try {
+      debt = await this.Debts
+        .findOne({_id: debtsId, users: {$in: [user.id]}})
+        .populate({ path: 'users', select: 'name picture'});
+
+      if(!debt) {
+        throw 'Debt not found';
+      }
+    } catch(err) {
+      throw new HttpException('Debt not found', HttpStatus.BAD_REQUEST);
+    }
+
     const deletedUserInfo = DebtsHelper.getCurrentDebtUserModel(debt, user.id);
 
     const virtualUserPayload = new CloneRealUserToVirtualDto(deletedUserInfo.name, deletedUserInfo.picture);

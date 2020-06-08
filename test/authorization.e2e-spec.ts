@@ -4,6 +4,8 @@ import {AuthUser} from '../src/app/modules/authentication/models/auth-user';
 import {validate} from 'class-validator';
 import {plainToClass} from 'class-transformer';
 import {AuthenticationHelper} from './helpers/authentication.helper';
+import {RequestHelper} from './helpers/request-helper';
+import {Logger} from '@nestjs/common';
 
 const credentials = require('./fixtures/auth-user');
 
@@ -244,16 +246,19 @@ describe('Authorization (e2e)', () => {
     expect(errors).toHaveLength(0);
 
     const emailName = /^.*(?=@)/;
-    let picUrlRegex;
 
     if(credentials) {
       expect(user.user.name).toBe(credentials.email.match(emailName)[0]);
-      picUrlRegex = /http:\/\/(.*)(\/static\/images\/.*\.png)/;
+      expect(user.user.picture).toBeTruthy();
+
+      await RequestHelper
+        .getImage(user.user.picture)
+        .expect(({status}) => expect(status).toBeLessThan(400));
     } else {
-      picUrlRegex = /https:\/\/graph\.facebook\.com\/.*\/picture\?type=large/;
+      const picUrlRegex = /https:\/\/graph\.facebook\.com\/.*\/picture\?type=large/;
+      expect(user.user.picture).toMatch(picUrlRegex);
     }
 
-    expect(user.user.picture).toMatch(picUrlRegex);
   }
 });
 
