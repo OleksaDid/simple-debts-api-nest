@@ -47,7 +47,7 @@ export class DebtsService {
           .findById(debtsId)
           .populate({
               path: 'moneyOperations',
-              select: 'date moneyAmount moneyReceiver description status statusAcceptor',
+              select: 'date moneyAmount moneyReceiver description status statusAcceptor cancelledBy',
               options: { sort: { 'date': -1 } }
           })
           .populate({path: 'connectedUser', select: 'name picture'})
