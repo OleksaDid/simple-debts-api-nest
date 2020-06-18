@@ -178,10 +178,7 @@ export class DebtsMultipleService {
 
   async acceptAllDebtOperations(user: SendUserDto, debtsId: Id): Promise<void> {
 
-    const debt = await this.Debts.findOne({
-      _id: debtsId,
-      type: DebtsAccountType.MULTIPLE_USERS
-    }).exec();
+    const debt = await this.Debts.findById(debtsId).exec();
 
     if(!debt) {
       throw new HttpException('Debt is not found', HttpStatus.BAD_REQUEST)
