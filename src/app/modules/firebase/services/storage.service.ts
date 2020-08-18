@@ -5,13 +5,24 @@ import * as fs from "fs";
 @Injectable()
 export class StorageService {
 
+  private readonly _metadata = {
+    cacheControl: 'public, max-age=360000'
+  };
+
   constructor(
     private _firebaseService: FirebaseService
-  ) {}
+  ) {
+    this.setupMetadata();
+  }
 
+
+  setupMetadata(): void {
+    this._firebaseService.storage.bucket().setMetadata(this._metadata);
+  }
 
   async uploadFile(filePath: string, destination: string): Promise<string> {
     const [newFile] = await this._firebaseService.storage.bucket().upload(filePath, {
+      ...this._metadata,
       destination
     });
 
