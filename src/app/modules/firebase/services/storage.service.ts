@@ -22,7 +22,7 @@ export class StorageService {
 
   async uploadFile(filePath: string, destination: string): Promise<string> {
     const [newFile] = await this._firebaseService.storage.bucket().upload(filePath, {
-      ...this._metadata,
+      metadata: this._metadata,
       destination
     });
 
